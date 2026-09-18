@@ -1,0 +1,1553 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Arto Operaciones</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{ color-scheme: light dark; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; }
+  img{ max-width:100%; }
+  [hidden]{ display:none!important; }
+  @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#1B2430; --ink-soft:#4B5568; --paper:#F1F2ED; --surface:#FFFFFF; --surface-2:#E9EAE3;
+    --line:#D9DAD1; --accent:#B9711C; --accent-soft:#F3E2C7; --accent-ink:#7A4E12;
+    --teal:#1F6E63; --teal-soft:#DCEDE9; --danger:#A83F2B; --danger-soft:#F3DED7;
+    --pend:#946B0E; --pend-soft:#F1E4C2;
+    --shadow: 0 1px 2px rgba(27,36,48,.06), 0 8px 24px -12px rgba(27,36,48,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#E9EAE3; --ink-soft:#A7AEBB; --paper:#12161C; --surface:#1A2029; --surface-2:#212833;
+      --line:#2E3642; --accent:#E7A54B; --accent-soft:#3A2E17; --accent-ink:#F2C77C;
+      --teal:#5FB3A4; --teal-soft:#173430; --danger:#E17D63; --danger-soft:#3A211C;
+      --pend:#E3C05E; --pend-soft:#332A12;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#E9EAE3; --ink-soft:#A7AEBB; --paper:#12161C; --surface:#1A2029; --surface-2:#212833;
+    --line:#2E3642; --accent:#E7A54B; --accent-soft:#3A2E17; --accent-ink:#F2C77C;
+    --teal:#5FB3A4; --teal-soft:#173430; --danger:#E17D63; --danger-soft:#3A211C;
+    --pend:#E3C05E; --pend-soft:#332A12;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px -14px rgba(0,0,0,.6);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:auto; }
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Work Sans', 'Segoe UI', sans-serif;
+    font-size:15px; line-height:1.5;
+  }
+  .disp{ font-family:'Big Shoulders Display','Arial Narrow',sans-serif; text-transform:uppercase; letter-spacing:.01em; font-weight:800; }
+  .mono{ font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+  button{ font-family:inherit; }
+  a{ color:var(--accent-ink); }
+
+  /* ---------- shell / appbar ---------- */
+  .shell{ max-width:1180px; margin:0 auto; padding:0 clamp(14px,3vw,32px) 4rem; }
+  header.appbar{
+    position:sticky; top:0; z-index:20; background:var(--paper);
+    border-bottom:1px solid var(--line); padding:1rem 0 0;
+  }
+  .appbar-top{ display:flex; align-items:baseline; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding-bottom:.8rem; }
+  .brand{ display:flex; align-items:baseline; gap:.6rem; }
+  .brand .disp{ font-size:1.5rem; color:var(--ink); }
+  .brand .tag{ font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:var(--accent-ink); background:var(--accent-soft); padding:.15rem .5rem; border-radius:3px; text-transform:uppercase; letter-spacing:.08em; }
+  .stat-mini-row{ display:flex; gap:1.4rem; font-family:'IBM Plex Mono',monospace; font-size:.72rem; color:var(--ink-soft); flex-wrap:wrap; }
+  .stat-mini b{ font-size:.95rem; color:var(--ink); display:block; font-weight:600; }
+  .gear-btn{ background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:.4rem .7rem; font-size:.8rem; cursor:pointer; color:var(--ink); }
+  .gear-btn:hover{ border-color:var(--accent); }
+
+  nav.tabs{ display:flex; gap:.2rem; overflow-x:auto; }
+  nav.tabs button{
+    background:none; border:none; border-bottom:2.5px solid transparent; color:var(--ink-soft);
+    padding:.6rem .9rem; font-size:.86rem; font-weight:600; cursor:pointer; white-space:nowrap;
+  }
+  nav.tabs button:hover{ color:var(--ink); }
+  nav.tabs button.active{ color:var(--accent-ink); border-bottom-color:var(--accent); }
+
+  main{ padding-top:1.6rem; }
+  .panel[hidden]{ display:none; }
+  .panel h2{ font-size:1.3rem; margin:0 0 .2rem; }
+  .panel > .sub{ color:var(--ink-soft); font-size:.88rem; margin:0 0 1.2rem; max-width:60ch; }
+
+  /* ---------- generic components ---------- */
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+  .toolbar{ display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem; }
+  .btn{
+    display:inline-flex; align-items:center; gap:.35rem; border-radius:6px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink); padding:.5rem .9rem; font-size:.82rem; font-weight:600;
+    cursor:pointer;
+  }
+  .btn:hover{ border-color:var(--accent); }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.primary:hover{ filter:brightness(1.05); }
+  .btn.ghost{ background:none; border-color:transparent; color:var(--ink-soft); }
+  .btn.danger{ color:var(--danger); border-color:var(--danger-soft); }
+  .btn.danger:hover{ border-color:var(--danger); }
+  .btn.small{ padding:.3rem .6rem; font-size:.72rem; }
+  .btn[disabled]{ opacity:.45; cursor:not-allowed; }
+
+  label{ display:block; font-family:'IBM Plex Mono',monospace; font-size:.65rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:.25rem; }
+  input, select, textarea{
+    width:100%; background:var(--surface-2); border:1px solid var(--line); border-radius:5px;
+    padding:.45rem .6rem; font-size:.85rem; color:var(--ink); font-family:inherit;
+  }
+  input:focus, select:focus, textarea:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .field{ margin-bottom:.8rem; }
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+  .grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:.8rem; }
+  @media (max-width:700px){ .grid-2,.grid-3{ grid-template-columns:1fr; } }
+
+  .pill{ font-family:'IBM Plex Mono',monospace; font-size:.62rem; text-transform:uppercase; padding:.15rem .55rem; border-radius:20px; display:inline-block; letter-spacing:.02em; }
+  .pill.ok{ background:var(--teal-soft); color:var(--teal); }
+  .pill.pend{ background:var(--pend-soft); color:var(--pend); }
+  .pill.canc{ background:var(--danger-soft); color:var(--danger); }
+  .pill.muted{ background:var(--surface-2); color:var(--ink-soft); }
+
+  .chip{ background:var(--surface-2); border-radius:20px; padding:.15rem .55rem; font-size:.72rem; display:inline-flex; align-items:center; gap:.3rem; }
+  .chip.enc{ background:var(--accent-soft); color:var(--accent-ink); font-weight:600; }
+
+  table.data{ width:100%; border-collapse:collapse; font-size:.84rem; }
+  table.data th, table.data td{ border-bottom:1px solid var(--line); padding:.55rem .5rem; text-align:left; vertical-align:top; }
+  table.data thead th{ font-family:'IBM Plex Mono',monospace; text-transform:uppercase; font-size:.64rem; letter-spacing:.05em; color:var(--ink-soft); border-bottom:2px solid var(--ink); }
+  .tbl-wrap{ overflow-x:auto; }
+  .empty-msg{ color:var(--ink-soft); font-size:.85rem; padding:1.4rem; text-align:center; }
+
+  /* ---------- calendar ---------- */
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+  .cal-head .disp{ font-size:1.3rem; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .cal-dow{ background:var(--surface-2); font-family:'IBM Plex Mono',monospace; font-size:.62rem; text-transform:uppercase; text-align:center; padding:.4rem 0; color:var(--ink-soft); }
+  .cal-cell{ background:var(--surface); min-height:88px; padding:.35rem; display:flex; flex-direction:column; gap:.25rem; }
+  .cal-cell.blank{ background:var(--paper); }
+  .cal-cell .dnum{ font-family:'IBM Plex Mono',monospace; font-size:.72rem; color:var(--ink-soft); }
+  .cal-cell.today .dnum{ color:#fff; background:var(--accent); border-radius:50%; width:1.4em; height:1.4em; display:flex; align-items:center; justify-content:center; }
+  .cal-ev{ font-size:.62rem; border-radius:3px; padding:.1rem .3rem; cursor:pointer; line-height:1.3; }
+  .cal-ev.pend{ background:var(--pend-soft); color:var(--pend); }
+  .cal-ev.ok{ background:var(--teal-soft); color:var(--teal); }
+  .cal-ev.canc{ background:var(--danger-soft); color:var(--danger); text-decoration:line-through; }
+  .cal-more{ font-size:.6rem; color:var(--ink-soft); }
+  @media (max-width:700px){ .cal-cell{ min-height:64px; } .cal-dow{ font-size:.55rem; } }
+
+  /* ---------- eventos ---------- */
+  .filtro-chip{ display:inline-flex; align-items:center; gap:.4rem; background:var(--accent-soft); color:var(--accent-ink); padding:.3rem .7rem; border-radius:20px; font-size:.78rem; margin-bottom:1rem; }
+  .filtro-chip button{ background:none; border:none; color:inherit; cursor:pointer; font-weight:700; }
+  .ev-card{ padding:1rem 1.1rem; margin-bottom:.7rem; }
+  .ev-card-top{ display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:baseline; }
+  .ev-card .ev-empresa{ font-weight:700; }
+  .ev-card .ev-meta{ font-size:.78rem; color:var(--ink-soft); margin-top:.15rem; }
+  .ev-card .ev-colabs{ display:flex; flex-wrap:wrap; gap:.3rem; margin-top:.5rem; }
+
+  .detail-back{ margin-bottom:1rem; }
+  .detail-head{ padding:1.2rem 1.3rem; margin-bottom:1rem; }
+  .detail-head .row1{ display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; }
+  .detail-head h3{ margin:0 0 .2rem; font-size:1.15rem; }
+  .detail-head .ev-meta{ font-size:.82rem; color:var(--ink-soft); }
+  .detail-actions{ display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.8rem; }
+
+  .colab-card{ padding:1rem 1.1rem; margin-bottom:.7rem; }
+  .colab-head{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.7rem; }
+  .colab-name{ font-weight:700; }
+  .colab-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:.7rem; }
+  .check-row{ display:flex; align-items:center; gap:.4rem; font-size:.8rem; }
+  .check-row input{ width:auto; }
+  .momentos-list{ margin:.4rem 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:.3rem; }
+  .momentos-list li{ font-size:.76rem; background:var(--surface-2); border-radius:4px; padding:.3rem .5rem; }
+  .momentos-list li .fecha{ color:var(--ink-soft); margin-right:.4rem; }
+  .add-momento-row{ display:flex; gap:.4rem; margin-top:.5rem; }
+  .colab-total{ margin-top:.7rem; padding-top:.6rem; border-top:1px dashed var(--line); display:flex; justify-content:space-between; align-items:center; font-size:.85rem; }
+  .colab-total b{ font-family:'IBM Plex Mono',monospace; }
+
+  /* ---------- nomina ---------- */
+  .nomina-total-box{ display:flex; gap:1.4rem; flex-wrap:wrap; margin:1rem 0 1.4rem; }
+  .nomina-total-box .stat{ background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:.8rem 1.1rem; }
+  .nomina-total-box .stat .n{ font-family:'Big Shoulders Display',sans-serif; font-size:1.7rem; font-weight:800; color:var(--accent-ink); }
+  .nomina-total-box .stat .l{ font-family:'IBM Plex Mono',monospace; font-size:.65rem; text-transform:uppercase; color:var(--ink-soft); }
+
+  footer{ max-width:1180px; margin:2rem auto 0; padding:1.2rem clamp(14px,3vw,32px) 0; border-top:1px solid var(--line); font-family:'IBM Plex Mono',monospace; font-size:.72rem; color:var(--ink-soft); display:flex; justify-content:space-between; flex-wrap:wrap; gap:.5rem; }
+
+  #toast{ position:fixed; bottom:1.2rem; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--paper); padding:.6rem 1.1rem; border-radius:6px; font-size:.82rem; box-shadow:var(--shadow); z-index:50; opacity:0; pointer-events:none; transition:opacity .2s; }
+  #toast.show{ opacity:1; }
+
+  .settings-pop{ position:fixed; top:4.2rem; right:clamp(14px,3vw,32px); width:280px; z-index:30; padding:1.1rem 1.2rem; }
+  .settings-pop[hidden]{ display:none; }
+  .settings-pop h4{ margin:0 0 .8rem; font-size:.85rem; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); }
+
+  .checklist{ display:flex; flex-direction:column; gap:.4rem; max-height:220px; overflow-y:auto; border:1px solid var(--line); border-radius:6px; padding:.6rem; background:var(--surface-2); }
+  .checklist label{ display:flex; align-items:center; gap:.5rem; text-transform:none; font-family:inherit; font-size:.82rem; color:var(--ink); }
+  .checklist label input{ width:auto; }
+  .checklist .star{ font-size:.7rem; color:var(--accent-ink); cursor:pointer; }
+
+  /* ---------- mi jornada ---------- */
+  .id-card{ max-width:460px; margin:0 auto; padding:1.6rem 1.6rem 1.8rem; text-align:center; border-top:3px solid var(--accent); }
+  .id-card .disp{ font-size:1.1rem; margin-bottom:.3rem; }
+  .id-card p{ color:var(--ink-soft); font-size:.85rem; margin:0 0 1.2rem; }
+  .id-card .field{ text-align:left; }
+  .mj-switch{ text-align:center; margin:1rem 0 0 !important; font-size:.82rem !important; }
+  .mj-switch a{ font-weight:600; }
+  .mj-auth-note{ margin:1.4rem 0 0 !important; font-size:.72rem !important; color:var(--ink-soft); line-height:1.5; }
+  .mj-toggle-btn{ width:100%; justify-content:center; padding:.7rem; font-size:.85rem; }
+  .mj-times{ display:flex; gap:1.2rem; font-size:.78rem; color:var(--ink-soft); margin:.6rem 0; }
+  .mj-times b{ color:var(--ink); font-family:'IBM Plex Mono',monospace; }
+  .mj-correct{ margin-top:.4rem; }
+  .mj-correct summary{ font-size:.72rem; color:var(--ink-soft); cursor:pointer; }
+  .mj-correct .colab-grid{ margin-top:.5rem; }
+  .mj-greet{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.6rem; margin-bottom:1.2rem; }
+  .mj-greet h2{ margin:0; }
+  .mj-section-label{ font-family:'IBM Plex Mono',monospace; font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); margin:1.6rem 0 .6rem; }
+  .mj-section-label:first-of-type{ margin-top:0; }
+  .mj-quickrow{ display:flex; gap:.5rem; align-items:flex-end; flex-wrap:wrap; }
+  .mj-quickrow .field{ flex:1; min-width:130px; margin-bottom:0; }
+  .mj-recap{ display:flex; gap:1.2rem; flex-wrap:wrap; }
+
+  @media (max-width:400px){ .grid-2,.grid-3,.colab-grid{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header class="appbar">
+    <div class="appbar-top">
+      <div class="brand">
+        <span class="disp">Arto Operaciones</span>
+        <span class="tag">Prototipo funcional</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:1.4rem;">
+        <div class="stat-mini-row">
+          <div class="stat-mini"><b id="mini-mes">0</b>eventos este mes</div>
+          <div class="stat-mini"><b id="mini-pend">0</b>pagos pendientes</div>
+          <div class="stat-mini"><b id="mini-gastos">0</b>gastos por reembolsar</div>
+        </div>
+        <button class="gear-btn" id="btn-settings" onclick="toggleSettings()">⚙ Ajustes</button>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab-btn" data-tab="mijornada" onclick="switchTab('mijornada')">👤 Mi Jornada</button>
+      <button class="tab-btn active" data-tab="calendario" onclick="switchTab('calendario')">📅 Calendario</button>
+      <button class="tab-btn" data-tab="eventos" onclick="switchTab('eventos')">🗂 Eventos</button>
+      <button class="tab-btn" data-tab="empleados" onclick="switchTab('empleados')">👥 Empleados</button>
+      <button class="tab-btn" data-tab="nomina" onclick="switchTab('nomina')">💵 Nómina</button>
+      <button class="tab-btn" data-tab="gastos" onclick="switchTab('gastos')">🧾 Gastos</button>
+      <button class="tab-btn" data-tab="directorio" onclick="switchTab('directorio')">📇 Directorio</button>
+    </nav>
+  </header>
+
+  <div class="card settings-pop" id="settings-pop" hidden>
+    <h4>Configuración de bonos</h4>
+    <div class="field"><label>Valor hora extra</label><input type="number" id="cfg-horaExtra" step="1000"></div>
+    <div class="field"><label>Bono por ser encargado</label><input type="number" id="cfg-bonoEncargado" step="1000"></div>
+    <div class="field"><label>Bono por festivo</label><input type="number" id="cfg-bonoFestivo" step="1000"></div>
+    <button class="btn primary small" style="width:100%;" onclick="guardarConfig()">Guardar</button>
+  </div>
+
+  <main>
+
+    <!-- ================= MI JORNADA (autoservicio colaborador) ================= -->
+    <section class="panel" id="tab-mijornada" hidden>
+
+      <div id="mj-identificacion">
+        <div class="card id-card">
+          <div class="disp" id="mj-auth-title">Iniciar sesión</div>
+          <p id="mj-auth-sub">Ingresa tu cédula y tu contraseña para ver tus eventos.</p>
+
+          <div id="mj-login-form">
+            <div class="field"><label>Cédula</label><input type="text" id="mj-login-cedula" inputmode="numeric" placeholder="Ej. 1030112233"></div>
+            <div class="field"><label>Contraseña</label><input type="password" id="mj-login-pass" onkeydown="if(event.key==='Enter') iniciarSesion()"></div>
+            <button class="btn primary" style="width:100%; justify-content:center;" onclick="iniciarSesion()">Ingresar</button>
+            <p class="mj-switch">¿Primera vez aquí? <a href="#" onclick="mostrarRegistro(event)">Regístrate</a></p>
+          </div>
+
+          <div id="mj-registro-form" hidden>
+            <div class="field"><label>Nombre completo</label><input type="text" id="mj-reg-nombre"></div>
+            <div class="field"><label>Cédula</label><input type="text" id="mj-reg-cedula" inputmode="numeric" placeholder="Tu número de documento"></div>
+            <div class="field"><label>Teléfono (WhatsApp)</label><input type="text" id="mj-reg-telefono" placeholder="3001234567"></div>
+            <div class="field"><label>Contraseña</label><input type="password" id="mj-reg-pass"></div>
+            <div class="field"><label>Confirmar contraseña</label><input type="password" id="mj-reg-pass2" onkeydown="if(event.key==='Enter') registrarme()"></div>
+            <button class="btn primary" style="width:100%; justify-content:center;" onclick="registrarme()">Crear mi cuenta</button>
+            <p class="mj-switch">¿Ya tienes cuenta? <a href="#" onclick="mostrarLogin(event)">Inicia sesión</a></p>
+          </div>
+
+          <p class="mj-auth-note">Tu cuenta y tu contraseña quedan protegidas por el sistema de autenticación de Supabase (la oficina no puede ver tu contraseña). Aun así, evita reutilizar una contraseña que ya uses en otra cuenta importante.</p>
+        </div>
+      </div>
+
+      <div id="mj-panel" hidden>
+        <div class="mj-greet">
+          <h2 id="mj-hola">Hola</h2>
+          <button class="btn ghost small" onclick="cambiarUsuario()">Cambiar de usuario</button>
+        </div>
+        <p class="sub">Marca tu hora de llegada y de salida en cada evento — con eso se genera tu nómina, sin que la oficina tenga que digitarlo.</p>
+        <div id="mj-eventos"></div>
+
+        <div class="mj-section-label">Mi resumen de este mes</div>
+        <div id="mj-recap"></div>
+      </div>
+    </section>
+
+    <!-- ================= CALENDARIO ================= -->
+    <section class="panel" id="tab-calendario">
+      <h2>Calendario mensual</h2>
+      <p class="sub">Vista automática de la programación — reemplaza la hoja "Calendario_Julio" armada a mano cada mes.</p>
+      <div class="card" style="padding:1rem 1.1rem;">
+        <div class="cal-head">
+          <button class="btn small" onclick="cambiarMes(-1)">‹ Anterior</button>
+          <span class="disp" id="cal-titulo">—</span>
+          <button class="btn small" onclick="cambiarMes(1)">Siguiente ›</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+    </section>
+
+    <!-- ================= EVENTOS ================= -->
+    <section class="panel" id="tab-eventos" hidden>
+
+      <div id="eventos-lista-wrap">
+        <h2>Programación de eventos</h2>
+        <p class="sub">Alta, edición y cancelación de eventos. Cancelar cambia el estado — el registro nunca se borra.</p>
+
+        <div class="card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
+          <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;">+ Nueva programación</h3>
+          <form id="form-evento" onsubmit="crearEvento(event)">
+            <div class="grid-3">
+              <div class="field"><label>Fecha</label><input type="date" id="nv-fecha" required></div>
+              <div class="field"><label>Modalidad</label>
+                <select id="nv-modalidad"><option>Presencial</option><option>Virtual</option></select>
+              </div>
+              <div class="field"><label>Tipo de evento</label><select id="nv-tipo" onchange="previsualizarTarifa()"></select></div>
+            </div>
+            <div class="grid-2">
+              <div class="field"><label>Empresa / cliente</label><input type="text" id="nv-empresa" placeholder="Ej. Colsubsidio - Bloc 20 de Julio" required></div>
+              <div class="field"><label>Lugar</label><input type="text" id="nv-lugar" placeholder="Ej. Salón comunal"></div>
+            </div>
+            <div class="grid-3">
+              <div class="field"><label>Hora alistamiento</label><input type="time" id="nv-hAlist" required></div>
+              <div class="field"><label>Hora inicio</label><input type="time" id="nv-hInicio" required></div>
+              <div class="field"><label>Hora fin</label><input type="time" id="nv-hFin" required></div>
+            </div>
+            <div class="field" id="nv-preview" style="font-size:.78rem; color:var(--ink-soft); margin:-.3rem 0 .8rem;"></div>
+            <div class="check-row" style="margin-bottom:.9rem;"><input type="checkbox" id="nv-festivo"><label style="margin:0; text-transform:none; font-family:inherit; font-size:.85rem;">Es día festivo</label></div>
+            <div class="field">
+              <label>Colaboradores asignados (marca ★ para encargado)</label>
+              <div class="checklist" id="nv-colabs"></div>
+            </div>
+            <div class="field"><label>Observaciones</label><textarea id="nv-obs" rows="2"></textarea></div>
+            <button type="submit" class="btn primary">Guardar programación</button>
+          </form>
+        </div>
+
+        <div class="toolbar">
+          <div id="filtro-fecha-chip"></div>
+          <select id="filtro-estado" style="width:auto;" onchange="renderEventos()">
+            <option value="">Todos los estados</option>
+            <option value="Programado">Programado</option>
+            <option value="Realizado">Realizado</option>
+            <option value="Cancelado">Cancelado</option>
+          </select>
+          <input type="text" id="filtro-texto" placeholder="Buscar por empresa o colaborador…" style="width:auto; min-width:220px;" oninput="renderEventos()">
+        </div>
+        <div id="eventos-lista"></div>
+      </div>
+
+      <div id="eventos-detalle-wrap" hidden></div>
+    </section>
+
+    <!-- ================= EMPLEADOS ================= -->
+    <section class="panel" id="tab-empleados" hidden>
+      <h2>Base de datos de empleados</h2>
+      <p class="sub">Datos personales, medio de pago, EPS y control de documentos adjuntos.</p>
+
+      <div class="card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
+        <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;">+ Nuevo colaborador</h3>
+        <form id="form-empleado" onsubmit="crearEmpleado(event)">
+          <div class="grid-3">
+            <div class="field"><label>Cédula</label><input type="text" id="em-cedula" required></div>
+            <div class="field"><label>Nombre completo</label><input type="text" id="em-nombre" required></div>
+            <div class="field"><label>Teléfono (WhatsApp)</label><input type="text" id="em-telefono" placeholder="3001234567"></div>
+          </div>
+          <div class="grid-3">
+            <div class="field"><label>Medio de pago</label>
+              <select id="em-cuentaPago"><option>Nequi</option><option>Daviplata</option><option>Cuenta bancaria</option></select>
+            </div>
+            <div class="field"><label>Número de cuenta / llave</label><input type="text" id="em-numeroCuenta"></div>
+            <div class="field"><label>EPS</label><input type="text" id="em-eps"></div>
+          </div>
+          <div class="grid-3">
+            <div class="field"><label>Talla de uniforme</label>
+              <select id="em-talla"><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option></select>
+            </div>
+            <div class="field"><label>Correo</label><input type="email" id="em-correo"></div>
+            <div class="check-row" style="margin-top:1.5rem;"><input type="checkbox" id="em-encargado"><label style="margin:0; text-transform:none; font-family:inherit; font-size:.85rem;">Habilitado como encargado de evento</label></div>
+          </div>
+          <div class="field">
+            <label>Documentos adjuntos en archivo</label>
+            <div style="display:flex; gap:1.2rem; flex-wrap:wrap;">
+              <span class="check-row"><input type="checkbox" id="em-doc-cedula"><label style="margin:0; text-transform:none; font-family:inherit;">Cédula</label></span>
+              <span class="check-row"><input type="checkbox" id="em-doc-contrato"><label style="margin:0; text-transform:none; font-family:inherit;">Contrato</label></span>
+              <span class="check-row"><input type="checkbox" id="em-doc-eps"><label style="margin:0; text-transform:none; font-family:inherit;">Certificado EPS</label></span>
+            </div>
+          </div>
+          <p style="font-size:.78rem; color:var(--ink-soft); margin:-.2rem 0 1rem;">El colaborador crea su propia cuenta y contraseña desde "Mi Jornada", usando esta misma cédula — aquí no se define contraseña.</p>
+          <button type="submit" class="btn primary">Guardar colaborador</button>
+        </form>
+      </div>
+
+      <div class="tbl-wrap card"><table class="data" id="tabla-empleados"></table></div>
+    </section>
+
+    <!-- ================= NOMINA ================= -->
+    <section class="panel" id="tab-nomina" hidden>
+      <h2>Nómina y recibo por colaborador</h2>
+      <p class="sub">Valida cuántos eventos hizo cada persona en el periodo y genera el mismo total de "Pagos_julio_Q1.xlsx", sin digitarlo a mano.</p>
+      <div class="toolbar">
+        <select id="nomina-empleado" style="width:auto; min-width:220px;" onchange="renderNomina()"></select>
+        <select id="nomina-mes" style="width:auto;" onchange="renderNomina()"></select>
+      </div>
+      <div id="nomina-resultado"></div>
+    </section>
+
+    <!-- ================= GASTOS ================= -->
+    <section class="panel" id="tab-gastos" hidden>
+      <h2>Compras y gastos de campo</h2>
+      <p class="sub">Registro de lo que el equipo compra para los talleres, con comprobante y estado de reembolso.</p>
+
+      <div class="card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
+        <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;">+ Registrar compra</h3>
+        <form id="form-gasto" onsubmit="crearGasto(event)">
+          <div class="grid-3">
+            <div class="field"><label>Fecha</label><input type="date" id="ga-fecha" required></div>
+            <div class="field"><label>Colaborador</label><select id="ga-empleado" required></select></div>
+            <div class="field"><label>Valor</label><input type="number" id="ga-valor" step="1000" required></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Concepto</label><input type="text" id="ga-concepto" placeholder="Ej. Material para taller" required></div>
+            <div class="field"><label>Comprobante (referencia)</label><input type="text" id="ga-comprobante" placeholder="Ej. Factura Papelería Central"></div>
+          </div>
+          <button type="submit" class="btn primary">Registrar</button>
+        </form>
+      </div>
+      <div class="tbl-wrap card"><table class="data" id="tabla-gastos"></table></div>
+    </section>
+
+    <!-- ================= DIRECTORIO ================= -->
+    <section class="panel" id="tab-directorio" hidden>
+      <h2>Directorio de la oficina</h2>
+      <p class="sub">Canales principales de comunicación con la oficina.</p>
+
+      <div class="card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
+        <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;">+ Nuevo contacto</h3>
+        <form id="form-directorio" onsubmit="crearDirectorio(event)">
+          <div class="grid-2">
+            <div class="field"><label>Área / motivo</label><input type="text" id="di-canal" placeholder="Ej. Nómina y pagos" required></div>
+            <div class="field"><label>Responsable</label><input type="text" id="di-responsable" required></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Tipo de canal</label>
+              <select id="di-tipo"><option>WhatsApp</option><option>Correo</option><option>Llamada</option><option>Presencial</option></select>
+            </div>
+            <div class="field"><label>Contacto</label><input type="text" id="di-contacto" required></div>
+          </div>
+          <button type="submit" class="btn primary">Guardar contacto</button>
+        </form>
+      </div>
+      <div class="tbl-wrap card"><table class="data" id="tabla-directorio"></table></div>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>Arto Operaciones — prototipo funcional</span>
+    <span id="modo-datos">Conectando…</span>
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   ARTO OPERACIONES — prototipo funcional
+   Datos: capability "db" cuando está disponible; si no, modo
+   local en memoria con la misma información de ejemplo.
+   ============================================================ */
+
+const DIAS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+/* ============================================================
+   CONFIGURACIÓN DE SUPABASE — edita estas 2 líneas después de
+   crear tu proyecto gratuito en https://supabase.com
+   (ver GUIA_DESPLIEGUE.md paso a paso). Sin esto, la app funciona
+   en modo de demostración local (cada navegador ve solo sus
+   propios datos de ejemplo, no se comparte nada).
+   ============================================================ */
+const CONFIG = {
+  SUPABASE_URL: 'PEGA_AQUI_TU_SUPABASE_URL',       // Ej: https://xxxxxxxxxxxx.supabase.co
+  SUPABASE_ANON_KEY: 'PEGA_AQUI_TU_SUPABASE_ANON_KEY', // la llave pública "anon" del proyecto
+  EMAIL_DOMAIN: 'colaboradores.arto-app.co',         // dominio interno (no real) para convertir la cédula en usuario de acceso
+};
+
+let sb = null;
+let usandoLocal = false;
+
+/* ---------------- mapeo camelCase (app) <-> snake_case (Supabase/Postgres) ---------------- */
+function fromEventoRow(r){
+  return {
+    id:r.id, fecha:r.fecha, horaAlistamiento:r.hora_alistamiento||'', horaInicio:r.hora_inicio||'', horaFin:r.hora_fin||'',
+    empresa:r.empresa||'', lugar:r.lugar||'', modalidad:r.modalidad||'Presencial', tipoEventoId:r.tipo_evento_id||'', tipoEventoNombre:r.tipo_evento_nombre||'',
+    tarifaBase:r.tarifa_base||0, refrigerio1:r.refrigerio1||0, refrigerio2:r.refrigerio2||0, subsidioTransporte:r.subsidio_transporte||0,
+    esFestivo:!!r.es_festivo, estado:r.estado||'Programado', observaciones:r.observaciones||'', cambios:r.cambios||[], colaboradores:r.colaboradores||[],
+  };
+}
+function toEventoRow(o){
+  const row = {};
+  if('fecha' in o) row.fecha = o.fecha;
+  if('horaAlistamiento' in o) row.hora_alistamiento = o.horaAlistamiento;
+  if('horaInicio' in o) row.hora_inicio = o.horaInicio;
+  if('horaFin' in o) row.hora_fin = o.horaFin;
+  if('empresa' in o) row.empresa = o.empresa;
+  if('lugar' in o) row.lugar = o.lugar;
+  if('modalidad' in o) row.modalidad = o.modalidad;
+  if('tipoEventoId' in o) row.tipo_evento_id = o.tipoEventoId;
+  if('tipoEventoNombre' in o) row.tipo_evento_nombre = o.tipoEventoNombre;
+  if('tarifaBase' in o) row.tarifa_base = o.tarifaBase;
+  if('refrigerio1' in o) row.refrigerio1 = o.refrigerio1;
+  if('refrigerio2' in o) row.refrigerio2 = o.refrigerio2;
+  if('subsidioTransporte' in o) row.subsidio_transporte = o.subsidioTransporte;
+  if('esFestivo' in o) row.es_festivo = o.esFestivo;
+  if('estado' in o) row.estado = o.estado;
+  if('observaciones' in o) row.observaciones = o.observaciones;
+  if('cambios' in o) row.cambios = o.cambios;
+  if('colaboradores' in o) row.colaboradores = o.colaboradores;
+  return row;
+}
+function fromEmpleadoRow(r){
+  return {
+    id:r.id, nombre:r.nombre||'', telefono:r.telefono||'', correo:r.correo||'', cuentaPago:r.cuenta_pago||'Nequi',
+    numeroCuenta:r.numero_cuenta||'', eps:r.eps||'', talla:r.talla||'M', encargado:!!r.encargado,
+    docs:r.docs||{cedula:false,contrato:false,eps:false}, tieneCuenta:!!r.tiene_cuenta,
+  };
+}
+function toEmpleadoRow(o){
+  const row = {};
+  if('id' in o) row.id = o.id;
+  if('nombre' in o) row.nombre = o.nombre;
+  if('telefono' in o) row.telefono = o.telefono;
+  if('correo' in o) row.correo = o.correo;
+  if('cuentaPago' in o) row.cuenta_pago = o.cuentaPago;
+  if('numeroCuenta' in o) row.numero_cuenta = o.numeroCuenta;
+  if('eps' in o) row.eps = o.eps;
+  if('talla' in o) row.talla = o.talla;
+  if('encargado' in o) row.encargado = o.encargado;
+  if('docs' in o) row.docs = o.docs;
+  if('tieneCuenta' in o) row.tiene_cuenta = o.tieneCuenta;
+  return row;
+}
+function fromGastoRow(r){
+  return {id:r.id, fecha:r.fecha, empleadoId:r.empleado_id, empleadoNombre:r.empleado_nombre||'', concepto:r.concepto||'', valor:r.valor||0, comprobante:r.comprobante||'', estadoReembolso:r.estado_reembolso||'Pendiente'};
+}
+function toGastoRow(o){
+  const row = {};
+  if('fecha' in o) row.fecha = o.fecha;
+  if('empleadoId' in o) row.empleado_id = o.empleadoId;
+  if('empleadoNombre' in o) row.empleado_nombre = o.empleadoNombre;
+  if('concepto' in o) row.concepto = o.concepto;
+  if('valor' in o) row.valor = o.valor;
+  if('comprobante' in o) row.comprobante = o.comprobante;
+  if('estadoReembolso' in o) row.estado_reembolso = o.estadoReembolso;
+  return row;
+}
+function fromTipoRow(r){
+  return {id:r.id, nombre:r.nombre, tarifaBase:r.tarifa_base||0, refrigerio1:r.refrigerio1||0, refrigerio2:r.refrigerio2||0, subsidioTransporte:r.subsidio_transporte||0};
+}
+
+/* ---------------- refetch (Supabase no usa "onSnapshot"; recargamos y refrescamos) ---------------- */
+async function refetchEmpleados(){ const {data} = await sb.from('empleados').select('*'); state.empleados = (data||[]).map(fromEmpleadoRow); poblarSelectsEmpleados(); }
+async function refetchTipos(){ const {data} = await sb.from('tipos_evento').select('*'); state.tiposEvento = (data||[]).map(fromTipoRow); poblarSelectTipos(); }
+async function refetchEventos(){ const {data} = await sb.from('eventos').select('*').order('fecha'); state.eventos = (data||[]).map(fromEventoRow); }
+async function refetchGastos(){ const {data} = await sb.from('gastos').select('*').order('fecha', {ascending:false}); state.gastos = (data||[]).map(fromGastoRow); }
+async function refetchDirectorio(){ const {data} = await sb.from('directorio').select('*'); state.directorio = data||[]; }
+async function refetchConfig(){
+  const {data} = await sb.from('config').select('*').eq('id','general').maybeSingle();
+  if(data) state.config = {valorHoraExtra:data.valor_hora_extra||8000, bonoEncargado:data.bono_encargado||15000, bonoFestivo:data.bono_festivo||20000};
+}
+async function cargarTodoSupabase(){
+  await Promise.all([refetchEmpleados(), refetchTipos(), refetchEventos(), refetchGastos(), refetchDirectorio(), refetchConfig()]);
+  renderActiveTab();
+}
+
+const state = {
+  empleados: [], tiposEvento: [], eventos: [], gastos: [], directorio: [],
+  config: { valorHoraExtra: 8000, bonoEncargado: 15000, bonoFestivo: 20000 },
+  activeTab: 'calendario',
+  calYear: new Date().getFullYear(), calMonth: new Date().getMonth(),
+  selectedEventId: null,
+  filtroFecha: null,
+  editando: {}, // eventoId -> bool (modo edición de datos generales)
+  momentoDraft: {}, // key "eventoId|empleadoId" -> texto
+  miId: safeGetLocal('arto_mi_id'),
+};
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtCOP(n){ n = Number(n)||0; return '$ ' + n.toLocaleString('es-CO'); }
+function fmtFecha(iso){
+  if(!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return d+'/'+m+'/'+y;
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function uid(){ return 'id-' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+function nowHHMM(){ const d = new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function safeGetLocal(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
+function safeSetLocal(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
+function safeRemoveLocal(key){ try{ localStorage.removeItem(key); }catch(e){} }
+
+/* ---------------- seed data (used to bootstrap db, and as local fallback) ---------------- */
+const SEED = {
+  tiposEvento: [
+    {id:'taller-basico', nombre:'Taller Básico', tarifaBase:60000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:0},
+    {id:'taller-especializado', nombre:'Taller Especializado', tarifaBase:90000, refrigerio1:10000, refrigerio2:8000, subsidioTransporte:8000},
+    {id:'curso-especializado', nombre:'Curso Especializado', tarifaBase:70000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:0},
+    {id:'fotocabina-wally', nombre:'Fotocabina Wally', tarifaBase:50000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:8000},
+    {id:'fotocabina-eva', nombre:'Fotocabina Eva', tarifaBase:55000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:8000},
+    {id:'fotografia-video', nombre:'Fotografía y/o Video', tarifaBase:135000, refrigerio1:10000, refrigerio2:8000, subsidioTransporte:0},
+    {id:'espejo-magico', nombre:'Espejo Mágico', tarifaBase:70000, refrigerio1:0, refrigerio2:0, subsidioTransporte:0},
+    {id:'apoyo-logistico', nombre:'Apoyo Logístico', tarifaBase:50000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:0},
+  ],
+  empleados: [
+    {id:'1019011109', nombre:'Alejandra Ramirez Mesa', telefono:'3001112201', correo:'', cuentaPago:'Nequi', numeroCuenta:'3001112201', eps:'Famisanar', talla:'M', encargado:false, docs:{cedula:true,contrato:true,eps:false}},
+    {id:'1031540028', nombre:'Ana Saray Forero Buitrago', telefono:'3001112203', correo:'', cuentaPago:'Nequi', numeroCuenta:'3001112203', eps:'Salud Total', talla:'S', encargado:false, docs:{cedula:true,contrato:false,eps:false}},
+    {id:'1023870841', nombre:'Andrea Viviana Vargas Orduz', telefono:'3001112204', correo:'', cuentaPago:'Cuenta bancaria', numeroCuenta:'24073118020', eps:'Compensar', talla:'M', encargado:true, docs:{cedula:true,contrato:true,eps:true}},
+    {id:'1032456789', nombre:'Zully Melissa Bonilla Fonseca', telefono:'3001112205', correo:'', cuentaPago:'Nequi', numeroCuenta:'3001112205', eps:'Sura', talla:'S', encargado:true, docs:{cedula:true,contrato:true,eps:true}},
+    {id:'1019876543', nombre:'Óscar Daniel Canelo González', telefono:'3001112206', correo:'', cuentaPago:'Daviplata', numeroCuenta:'3001112206', eps:'Nueva EPS', talla:'L', encargado:false, docs:{cedula:true,contrato:false,eps:false}},
+    {id:'1030112233', nombre:'Julian David Barreto Medina', telefono:'3001112207', correo:'', cuentaPago:'Nequi', numeroCuenta:'@barreto2408', eps:'Sanitas', talla:'M', encargado:false, docs:{cedula:true,contrato:true,eps:false}},
+    {id:'1022998877', nombre:'Nicolás Ruíz', telefono:'3001112208', correo:'', cuentaPago:'Nequi', numeroCuenta:'3001112208', eps:'Compensar', talla:'M', encargado:true, docs:{cedula:true,contrato:true,eps:false}},
+    {id:'1019334455', nombre:'Valeria Neira Silva', telefono:'3001112209', correo:'', cuentaPago:'Nequi', numeroCuenta:'3001112209', eps:'Famisanar', talla:'S', encargado:false, docs:{cedula:false,contrato:false,eps:false}},
+    {id:'1020112244', nombre:'Leiser Duban Barahona Lara', telefono:'3001112210', correo:'', cuentaPago:'Cuenta bancaria', numeroCuenta:'44556677', eps:'Salud Total', talla:'L', encargado:true, docs:{cedula:true,contrato:true,eps:true}},
+    {id:'1018556677', nombre:'Carlos Mario Hernández Pinilla', telefono:'3001112211', correo:'', cuentaPago:'Nequi', numeroCuenta:'3001112211', eps:'Sura', talla:'L', encargado:false, docs:{cedula:true,contrato:false,eps:false}},
+    {id:'1024667788', nombre:'Daniela Ortiz Rangel', telefono:'3001112212', correo:'', cuentaPago:'Nequi', numeroCuenta:'3001112212', eps:'Compensar', talla:'S', encargado:false, docs:{cedula:true,contrato:true,eps:false}},
+    {id:'1021778899', nombre:'Tatiana Paola Bernal Páez', telefono:'3001112213', correo:'', cuentaPago:'Daviplata', numeroCuenta:'3001112213', eps:'Nueva EPS', talla:'M', encargado:true, docs:{cedula:true,contrato:true,eps:true}},
+    {id:'1017889900', nombre:'Yeny Paola Sotaquira Acosta', telefono:'', correo:'', cuentaPago:'Nequi', numeroCuenta:'', eps:'Famisanar', talla:'M', encargado:false, docs:{cedula:false,contrato:false,eps:false}},
+  ],
+  eventos: [
+    {id:'ev1', fecha:'2026-09-01', horaAlistamiento:'08:00', horaInicio:'10:00', horaFin:'17:00', empresa:'Colsubsidio - Bloc 20 de Julio', lugar:'Bloc 20 de Julio', modalidad:'Presencial', tipoEventoId:'taller-basico', tipoEventoNombre:'Taller Básico', tarifaBase:60000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:0, esFestivo:false, estado:'Realizado', observaciones:'', cambios:[],
+      colaboradores:[{empleadoId:'1032456789', nombre:'Zully Melissa Bonilla Fonseca', esEncargado:true, horaLlegadaReal:'07:55', horaFinReal:'17:10', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'Recibo taxi $9.000', momentosDestacados:[{nota:'Buena participación del público, se agotó material de muestras.', fecha:'2026-09-01'}], estadoPago:'Pagado'}]},
+    {id:'ev2', fecha:'2026-09-02', horaAlistamiento:'09:30', horaInicio:'11:00', horaFin:'18:00', empresa:'T.EN COLOMBIA', lugar:'Cl. 38 #8-62', modalidad:'Presencial', tipoEventoId:'taller-basico', tipoEventoNombre:'Taller Básico', tarifaBase:60000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:0, esFestivo:false, estado:'Realizado', observaciones:'', cambios:[],
+      colaboradores:[{empleadoId:'1030112233', nombre:'Julian David Barreto Medina', esEncargado:false, horaLlegadaReal:'09:25', horaFinReal:'18:05', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'}]},
+    {id:'ev3', fecha:'2026-09-03', horaAlistamiento:'08:00', horaInicio:'08:00', horaFin:'11:59', empresa:'Colsubsidio - Hocol', lugar:'Ofc. Minuto de Dios', modalidad:'Virtual', tipoEventoId:'taller-basico', tipoEventoNombre:'Taller Básico', tarifaBase:60000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:0, esFestivo:false, estado:'Realizado', observaciones:'', cambios:[],
+      colaboradores:[{empleadoId:'1017889900', nombre:'Yeny Paola Sotaquira Acosta', esEncargado:false, horaLlegadaReal:'08:00', horaFinReal:'12:00', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'}]},
+    {id:'ev4', fecha:'2026-09-04', horaAlistamiento:'06:00', horaInicio:'08:00', horaFin:'11:59', empresa:'Banco de la República', lugar:'Sede principal', modalidad:'Presencial', tipoEventoId:'taller-especializado', tipoEventoNombre:'Taller Especializado', tarifaBase:90000, refrigerio1:10000, refrigerio2:8000, subsidioTransporte:8000, esFestivo:false, estado:'Cancelado', observaciones:'Cliente canceló por lluvia.', cambios:[{fecha:'2026-09-03T18:00:00.000Z', resumen:'Evento cancelado por el cliente.'}],
+      colaboradores:[{empleadoId:'1024667788', nombre:'Daniela Ortiz Rangel', esEncargado:false, horaLlegadaReal:'', horaFinReal:'', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'}]},
+    {id:'ev5', fecha:'2026-09-08', horaAlistamiento:'13:00', horaInicio:'15:00', horaFin:'23:59', empresa:'EYC Proveedores SAS - Bavaria', lugar:'Planta Bavaria', modalidad:'Presencial', tipoEventoId:'fotocabina-eva', tipoEventoNombre:'Fotocabina Eva', tarifaBase:55000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:8000, esFestivo:false, estado:'Realizado', observaciones:'', cambios:[],
+      colaboradores:[
+        {empleadoId:'1032456789', nombre:'Zully Melissa Bonilla Fonseca', esEncargado:true, horaLlegadaReal:'12:50', horaFinReal:'23:50', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[{nota:'Cliente pidió extender 1 hora, se coordinó con logística.', fecha:'2026-09-08'}], estadoPago:'Pendiente'},
+        {empleadoId:'1019876543', nombre:'Óscar Daniel Canelo González', esEncargado:false, horaLlegadaReal:'12:55', horaFinReal:'23:55', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'},
+      ]},
+    {id:'ev6', fecha:'2026-09-11', horaAlistamiento:'06:00', horaInicio:'09:00', horaFin:'16:00', empresa:'Colsubsidio - Club Colina', lugar:'Club Colina', modalidad:'Presencial', tipoEventoId:'fotocabina-wally', tipoEventoNombre:'Fotocabina Wally', tarifaBase:50000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:8000, esFestivo:false, estado:'Programado', observaciones:'', cambios:[],
+      colaboradores:[
+        {empleadoId:'1022998877', nombre:'Nicolás Ruíz', esEncargado:true, horaLlegadaReal:'', horaFinReal:'', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'},
+        {empleadoId:'1019334455', nombre:'Valeria Neira Silva', esEncargado:false, horaLlegadaReal:'', horaFinReal:'', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'},
+      ]},
+    {id:'ev7', fecha:'2026-09-14', horaAlistamiento:'08:30', horaInicio:'11:59', horaFin:'14:00', empresa:'MSolutions Media - Politécnico Gran Colombiano', lugar:'Campus Principal del Poli', modalidad:'Presencial', tipoEventoId:'espejo-magico', tipoEventoNombre:'Espejo Mágico', tarifaBase:70000, refrigerio1:0, refrigerio2:0, subsidioTransporte:0, esFestivo:false, estado:'Programado', observaciones:'', cambios:[],
+      colaboradores:[{empleadoId:'1031540028', nombre:'Ana Saray Forero Buitrago', esEncargado:false, horaLlegadaReal:'', horaFinReal:'', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'}]},
+    {id:'ev8', fecha:'2026-09-16', horaAlistamiento:'05:00', horaInicio:'08:00', horaFin:'15:00', empresa:'Colsubsidio - Dirección Seccional', lugar:'Dirección Seccional', modalidad:'Presencial', tipoEventoId:'apoyo-logistico', tipoEventoNombre:'Apoyo Logístico', tarifaBase:50000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:0, esFestivo:false, estado:'Programado', observaciones:'', cambios:[],
+      colaboradores:[
+        {empleadoId:'1020112244', nombre:'Leiser Duban Barahona Lara', esEncargado:true, horaLlegadaReal:'', horaFinReal:'', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'},
+        {empleadoId:'1018556677', nombre:'Carlos Mario Hernández Pinilla', esEncargado:false, horaLlegadaReal:'', horaFinReal:'', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'},
+      ]},
+    {id:'ev9', fecha:'2026-09-21', horaAlistamiento:'08:00', horaInicio:'10:00', horaFin:'17:00', empresa:'Colsubsidio - Bloc 20 de Julio', lugar:'Bloc 20 de Julio', modalidad:'Presencial', tipoEventoId:'curso-especializado', tipoEventoNombre:'Curso Especializado', tarifaBase:70000, refrigerio1:10000, refrigerio2:0, subsidioTransporte:0, esFestivo:true, estado:'Programado', observaciones:'Festivo — confirmar con el cliente.', cambios:[],
+      colaboradores:[{empleadoId:'1021778899', nombre:'Tatiana Paola Bernal Páez', esEncargado:true, horaLlegadaReal:'', horaFinReal:'', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'}]},
+    {id:'ev10', fecha:'2026-09-25', horaAlistamiento:'09:00', horaInicio:'09:00', horaFin:'16:00', empresa:'ARTO SAS', lugar:'Oficina Arto', modalidad:'Presencial', tipoEventoId:'curso-especializado', tipoEventoNombre:'Curso Especializado (capacitación interna)', tarifaBase:60000, refrigerio1:0, refrigerio2:0, subsidioTransporte:0, esFestivo:false, estado:'Programado', observaciones:'', cambios:[],
+      colaboradores:[
+        {empleadoId:'1023870841', nombre:'Andrea Viviana Vargas Orduz', esEncargado:true, horaLlegadaReal:'', horaFinReal:'', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'},
+        {empleadoId:'1030112233', nombre:'Julian David Barreto Medina', esEncargado:false, horaLlegadaReal:'', horaFinReal:'', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'},
+      ]},
+  ],
+  gastos: [
+    {id:'ga1', fecha:'2026-09-01', empleadoId:'1032456789', empleadoNombre:'Zully Melissa Bonilla Fonseca', concepto:'Cinta y marcadores para taller Colsubsidio', valor:25000, comprobante:'Foto factura Papelería Central', estadoReembolso:'Pendiente'},
+    {id:'ga2', fecha:'2026-09-02', empleadoId:'1030112233', empleadoNombre:'Julian David Barreto Medina', concepto:'Material impreso taller T.EN Colombia', valor:18000, comprobante:'Factura Punto Digital', estadoReembolso:'Reembolsado'},
+    {id:'ga3', fecha:'2026-09-08', empleadoId:'1019876543', empleadoNombre:'Óscar Daniel Canelo González', concepto:'Baterías para fotocabina', valor:32000, comprobante:'Recibo Éxito', estadoReembolso:'Pendiente'},
+    {id:'ga4', fecha:'2026-09-11', empleadoId:'1022998877', empleadoNombre:'Nicolás Ruíz', concepto:'Transporte de equipos a Club Colina', valor:15000, comprobante:'Recibo taxi', estadoReembolso:'Pendiente'},
+  ],
+  directorio: [
+    {id:'di1', canal:'Coordinación general', responsable:'Sergio Arturo Espinoza', tipo:'WhatsApp', contacto:'+57 300 000 0000'},
+    {id:'di2', canal:'Programación de eventos', responsable:'Zully Bonilla (líder de campo)', tipo:'WhatsApp', contacto:'Grupo "Arto Eventos"'},
+    {id:'di3', canal:'Nómina y pagos', responsable:'Contabilidad Arto', tipo:'Correo', contacto:'pagos@arto.com.co'},
+    {id:'di4', canal:'Soporte del aplicativo', responsable:'Arturo (consultor)', tipo:'Correo', contacto:'arturo.espi112@gmail.com'},
+    {id:'di5', canal:'Emergencias en evento', responsable:'Línea de guardia', tipo:'Llamada', contacto:'300 000 0001'},
+  ],
+  config: {valorHoraExtra:8000, bonoEncargado:15000, bonoFestivo:20000},
+};
+
+/* ---------------- init ---------------- */
+async function init(){
+  const configListo = CONFIG.SUPABASE_URL && CONFIG.SUPABASE_URL.indexOf('PEGA_AQUI')===-1
+    && CONFIG.SUPABASE_ANON_KEY && CONFIG.SUPABASE_ANON_KEY.indexOf('PEGA_AQUI')===-1;
+
+  if(configListo && window.supabase && window.supabase.createClient){
+    try{ sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY); }catch(e){ sb = null; }
+  }
+
+  if(sb){
+    usandoLocal = false;
+    document.getElementById('modo-datos').textContent = 'Conectando…';
+    sb.auth.onAuthStateChange((_event, session)=>{
+      if(session && session.user){
+        state.miId = (session.user.user_metadata && session.user.user_metadata.cedula) || (session.user.email||'').split('@')[0];
+      }else{
+        state.miId = null;
+      }
+      if(dataReadyDone) renderMiJornada();
+    });
+    try{
+      await cargarTodoSupabase();
+      document.getElementById('modo-datos').textContent = 'Datos en vivo — compartidos para todo el equipo';
+    }catch(e){
+      document.getElementById('modo-datos').textContent = 'No se pudo conectar a Supabase — revisa la consola del navegador.';
+    }
+    onDataReady();
+    setInterval(()=>{ cargarTodoSupabase().catch(()=>{}); }, 25000); // refresco liviano para ver los cambios de otros
+  }else{
+    usandoLocal = true;
+    document.getElementById('modo-datos').textContent = 'Vista de demostración local — configura Supabase en index.html para compartir datos de verdad (ver GUIA_DESPLIEGUE.md)';
+    state.tiposEvento = SEED.tiposEvento.map(x=>({...x}));
+    state.empleados = SEED.empleados.map(x=>({...x}));
+    state.eventos = SEED.eventos.map(x=>({...x, colaboradores:x.colaboradores.map(c=>({...c, momentosDestacados:[...c.momentosDestacados]}))}));
+    state.gastos = SEED.gastos.map(x=>({...x}));
+    state.directorio = SEED.directorio.map(x=>({...x}));
+    state.config = {...SEED.config};
+    onDataReady();
+  }
+}
+
+let dataReadyDone = false;
+function onDataReady(){
+  if(dataReadyDone) return;
+  dataReadyDone = true;
+  poblarSelectsEmpleados();
+  poblarSelectTipos();
+  document.getElementById('ga-fecha').value = todayStr();
+  document.getElementById('nv-fecha').value = todayStr();
+  previsualizarTarifa();
+  renderAll();
+}
+
+/* ---------------- data layer (Supabase o local) ---------------- */
+const Data = {
+  async addEvento(obj){
+    if(sb){
+      const {error} = await sb.from('eventos').insert(toEventoRow(obj));
+      if(error){ toast('❌ '+error.message); throw error; }
+      await refetchEventos();
+      renderActiveTab();
+    }else{
+      state.eventos.push({id:uid(), ...obj}); state.eventos.sort((a,b)=>a.fecha.localeCompare(b.fecha)); renderActiveTab();
+    }
+  },
+  async updateEvento(id, patch){
+    if(sb){
+      const {error} = await sb.from('eventos').update(toEventoRow(patch)).eq('id', id);
+      if(error){ toast('❌ '+error.message); throw error; }
+      await refetchEventos();
+      renderActiveTab();
+    }else{
+      const ev = state.eventos.find(e=>e.id===id); Object.assign(ev, patch); renderActiveTab();
+    }
+  },
+  async addEmpleado(obj){
+    if(sb){
+      const {error} = await sb.from('empleados').insert(toEmpleadoRow(obj));
+      if(error){ toast('❌ '+error.message); throw error; }
+      await refetchEmpleados();
+      renderActiveTab();
+    }else{
+      state.empleados.push({...obj}); poblarSelectsEmpleados(); renderActiveTab();
+    }
+  },
+  async updateEmpleado(id, patch){
+    if(sb){
+      const {error} = await sb.from('empleados').update(toEmpleadoRow(patch)).eq('id', id);
+      if(error){ toast('❌ '+error.message); throw error; }
+      await refetchEmpleados();
+      renderActiveTab();
+    }else{
+      const e = state.empleados.find(x=>x.id===id); if(e) Object.assign(e, patch); poblarSelectsEmpleados(); renderActiveTab();
+    }
+  },
+  async addGasto(obj){
+    if(sb){
+      const {error} = await sb.from('gastos').insert(toGastoRow(obj));
+      if(error){ toast('❌ '+error.message); throw error; }
+      await refetchGastos();
+      renderActiveTab(); renderMiniStats();
+    }else{
+      state.gastos.push({id:uid(), ...obj}); renderActiveTab(); renderMiniStats();
+    }
+  },
+  async updateGasto(id, patch){
+    if(sb){
+      const {error} = await sb.from('gastos').update(toGastoRow(patch)).eq('id', id);
+      if(error){ toast('❌ '+error.message); throw error; }
+      await refetchGastos();
+      renderActiveTab(); renderMiniStats();
+    }else{
+      const g = state.gastos.find(x=>x.id===id); Object.assign(g, patch); renderActiveTab(); renderMiniStats();
+    }
+  },
+  async addDirectorio(obj){
+    if(sb){
+      const {error} = await sb.from('directorio').insert(obj);
+      if(error){ toast('❌ '+error.message); throw error; }
+      await refetchDirectorio();
+      renderActiveTab();
+    }else{
+      state.directorio.push({id:uid(), ...obj}); renderActiveTab();
+    }
+  },
+  async setConfig(obj){
+    if(sb){
+      const {error} = await sb.from('config').update({
+        valor_hora_extra: obj.valorHoraExtra, bono_encargado: obj.bonoEncargado, bono_festivo: obj.bonoFestivo,
+      }).eq('id','general');
+      if(error){ toast('❌ '+error.message); throw error; }
+      state.config = obj;
+    }else{
+      state.config = obj;
+    }
+  },
+};
+
+/* ---------------- tabs ---------------- */
+function switchTab(tab){
+  state.activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.panel').forEach(p=>p.hidden = (p.id !== 'tab-'+tab));
+  if(tab==='eventos'){
+    document.getElementById('eventos-lista-wrap').hidden = !!state.selectedEventId;
+    document.getElementById('eventos-detalle-wrap').hidden = !state.selectedEventId;
+  }
+  renderActiveTab();
+}
+function renderActiveTab(){
+  renderMiniStats();
+  switch(state.activeTab){
+    case 'mijornada': renderMiJornada(); break;
+    case 'calendario': renderCalendario(); break;
+    case 'eventos': renderEventos(); renderDetalle(); break;
+    case 'empleados': renderEmpleados(); break;
+    case 'nomina': renderNomina(); break;
+    case 'gastos': renderGastos(); break;
+    case 'directorio': renderDirectorio(); break;
+  }
+}
+function renderAll(){ renderActiveTab(); }
+
+function toggleSettings(){
+  const pop = document.getElementById('settings-pop');
+  pop.hidden = !pop.hidden;
+  if(!pop.hidden){
+    document.getElementById('cfg-horaExtra').value = state.config.valorHoraExtra;
+    document.getElementById('cfg-bonoEncargado').value = state.config.bonoEncargado;
+    document.getElementById('cfg-bonoFestivo').value = state.config.bonoFestivo;
+  }
+}
+function guardarConfig(){
+  const obj = {
+    valorHoraExtra: Number(document.getElementById('cfg-horaExtra').value)||0,
+    bonoEncargado: Number(document.getElementById('cfg-bonoEncargado').value)||0,
+    bonoFestivo: Number(document.getElementById('cfg-bonoFestivo').value)||0,
+  };
+  Data.setConfig(obj);
+  document.getElementById('settings-pop').hidden = true;
+  toast('Configuración de bonos actualizada.');
+  renderActiveTab();
+}
+
+/* ---------------- mini stats ---------------- */
+function renderMiniStats(){
+  const ym = state.calYear + '-' + String(state.calMonth+1).padStart(2,'0');
+  const nowYm = todayStr().slice(0,7);
+  const evMes = state.eventos.filter(e=>e.fecha && e.fecha.startsWith(nowYm) && e.estado!=='Cancelado').length;
+  let pend = 0;
+  state.eventos.forEach(e=>{ if(e.estado==='Cancelado') return; (e.colaboradores||[]).forEach(c=>{ if(c.estadoPago!=='Pagado') pend++; }); });
+  const gastosPend = state.gastos.filter(g=>g.estadoReembolso!=='Reembolsado').length;
+  document.getElementById('mini-mes').textContent = evMes;
+  document.getElementById('mini-pend').textContent = pend;
+  document.getElementById('mini-gastos').textContent = gastosPend;
+}
+
+/* ---------------- selects ---------------- */
+function poblarSelectTipos(){
+  const sel = document.getElementById('nv-tipo');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = state.tiposEvento.map(t=>'<option value="'+t.id+'">'+t.nombre+'</option>').join('');
+  if(cur) sel.value = cur;
+  previsualizarTarifa();
+}
+function poblarSelectsEmpleados(){
+  const box = document.getElementById('nv-colabs');
+  if(box){
+    box.innerHTML = state.empleados.map(e=>(
+      '<label><input type="checkbox" class="nv-colab-chk" value="'+e.id+'">'+
+      '<span>'+e.nombre+(e.telefono?'':' <em style="color:var(--danger); font-style:normal;">(sin teléfono)</em>')+'</span>'+
+      '<span class="star" data-enc="'+e.id+'" onclick="marcarEncargado(this)">☆ encargado</span></label>'
+    )).join('') || '<div class="empty-msg">Aún no hay colaboradores registrados.</div>';
+  }
+  const gaSel = document.getElementById('ga-empleado');
+  if(gaSel){ gaSel.innerHTML = state.empleados.map(e=>'<option value="'+e.id+'">'+e.nombre+'</option>').join(''); }
+  const noSel = document.getElementById('nomina-empleado');
+  if(noSel){
+    const cur = noSel.value;
+    noSel.innerHTML = '<option value="">Selecciona un colaborador…</option>' + state.empleados.map(e=>'<option value="'+e.id+'">'+e.nombre+'</option>').join('');
+    if(cur) noSel.value = cur;
+  }
+  poblarSelectMeses();
+}
+function poblarSelectMeses(){
+  const sel = document.getElementById('nomina-mes');
+  if(!sel) return;
+  const cur = sel.value;
+  const meses = Array.from(new Set(state.eventos.map(e=>e.fecha.slice(0,7)))).sort();
+  if(meses.length===0) meses.push(todayStr().slice(0,7));
+  sel.innerHTML = meses.map(ym=>{
+    const [y,m] = ym.split('-');
+    return '<option value="'+ym+'">'+MESES[Number(m)-1]+' '+y+'</option>';
+  }).join('');
+  if(cur && meses.includes(cur)) sel.value = cur; else sel.value = meses[meses.length-1];
+}
+
+function marcarEncargado(el){
+  document.querySelectorAll('#nv-colabs .star').forEach(s=>{ s.textContent = '☆ encargado'; s.style.color=''; });
+  el.textContent = '★ encargado';
+  el.style.color = 'var(--accent-ink)';
+  el.dataset.selected = '1';
+  document.querySelectorAll('#nv-colabs .star').forEach(s=>{ if(s!==el) delete s.dataset.selected; });
+}
+
+function previsualizarTarifa(){
+  const tipo = state.tiposEvento.find(t=>t.id===document.getElementById('nv-tipo').value);
+  const box = document.getElementById('nv-preview');
+  if(!box) return;
+  if(!tipo){ box.textContent=''; return; }
+  box.innerHTML = 'Tarifa base '+fmtCOP(tipo.tarifaBase)+' · Refrigerios '+fmtCOP(tipo.refrigerio1+tipo.refrigerio2)+' · Subsidio transporte '+fmtCOP(tipo.subsidioTransporte)+' <span style="color:var(--ink-soft);">(editable luego en el detalle del evento)</span>';
+}
+
+/* ---------------- calendario ---------------- */
+function cambiarMes(delta){
+  state.calMonth += delta;
+  if(state.calMonth<0){ state.calMonth=11; state.calYear--; }
+  if(state.calMonth>11){ state.calMonth=0; state.calYear++; }
+  renderCalendario();
+}
+function renderCalendario(){
+  document.getElementById('cal-titulo').textContent = MESES[state.calMonth]+' '+state.calYear;
+  const first = new Date(state.calYear, state.calMonth, 1);
+  const startIdx = (first.getDay()+6)%7; // Monday=0
+  const daysInMonth = new Date(state.calYear, state.calMonth+1, 0).getDate();
+  const today = todayStr();
+
+  let html = DIAS.map(d=>'<div class="cal-dow">'+d+'</div>').join('');
+  for(let i=0;i<startIdx;i++) html += '<div class="cal-cell blank"></div>';
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = state.calYear+'-'+String(state.calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const evs = state.eventos.filter(e=>e.fecha===dateStr);
+    const isToday = dateStr===today;
+    let evsHtml = evs.slice(0,3).map(e=>{
+      const cls = e.estado==='Cancelado' ? 'canc' : (e.estado==='Realizado' ? 'ok' : 'pend');
+      const label = e.empresa.length>16 ? e.empresa.slice(0,15)+'…' : e.empresa;
+      return '<div class="cal-ev '+cls+'" onclick="irAFecha(\''+dateStr+'\')">'+label+'</div>';
+    }).join('');
+    if(evs.length>3) evsHtml += '<div class="cal-more">+'+(evs.length-3)+' más</div>';
+    html += '<div class="cal-cell'+(isToday?' today':'')+'"><div class="dnum">'+d+'</div>'+evsHtml+'</div>';
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+function irAFecha(dateStr){
+  state.filtroFecha = dateStr;
+  state.selectedEventId = null;
+  switchTab('eventos');
+}
+
+/* ---------------- eventos: crear ---------------- */
+function crearEvento(ev){
+  ev.preventDefault();
+  const seleccionados = Array.from(document.querySelectorAll('#nv-colabs .nv-colab-chk:checked')).map(chk=>chk.value);
+  if(seleccionados.length===0){ toast('Selecciona al menos un colaborador.'); return; }
+  const encargadoStar = document.querySelector('#nv-colabs .star[data-selected="1"]');
+  const encargadoId = encargadoStar ? encargadoStar.dataset.enc : null;
+  const tipo = state.tiposEvento.find(t=>t.id===document.getElementById('nv-tipo').value);
+  const colaboradores = seleccionados.map(id=>{
+    const emp = state.empleados.find(e=>e.id===id);
+    return {empleadoId:id, nombre:emp?emp.nombre:id, esEncargado:id===encargadoId, horaLlegadaReal:'', horaFinReal:'', cumpleHorario:true, cumpleUniforme:true, horasExtra:0, bonoLibre:0, comprobanteTransporte:'', momentosDestacados:[], estadoPago:'Pendiente'};
+  });
+  const obj = {
+    fecha: document.getElementById('nv-fecha').value,
+    horaAlistamiento: document.getElementById('nv-hAlist').value,
+    horaInicio: document.getElementById('nv-hInicio').value,
+    horaFin: document.getElementById('nv-hFin').value,
+    empresa: document.getElementById('nv-empresa').value,
+    lugar: document.getElementById('nv-lugar').value,
+    modalidad: document.getElementById('nv-modalidad').value,
+    tipoEventoId: tipo?tipo.id:'', tipoEventoNombre: tipo?tipo.nombre:'',
+    tarifaBase: tipo?tipo.tarifaBase:0, refrigerio1: tipo?tipo.refrigerio1:0, refrigerio2: tipo?tipo.refrigerio2:0, subsidioTransporte: tipo?tipo.subsidioTransporte:0,
+    esFestivo: document.getElementById('nv-festivo').checked,
+    estado: 'Programado',
+    observaciones: document.getElementById('nv-obs').value,
+    cambios: [],
+    colaboradores,
+  };
+  Data.addEvento(obj).then(()=>{
+    toast('Evento programado. Se generó el calendario automáticamente.');
+    ev.target.reset();
+    document.getElementById('nv-fecha').value = todayStr();
+    document.querySelectorAll('#nv-colabs .star').forEach(s=>{ s.textContent='☆ encargado'; delete s.dataset.selected; });
+    previsualizarTarifa();
+  });
+}
+
+/* ---------------- eventos: lista ---------------- */
+function limpiarFiltroFecha(){ state.filtroFecha = null; renderEventos(); }
+
+function renderEventos(){
+  const chipBox = document.getElementById('filtro-fecha-chip');
+  if(state.filtroFecha){
+    chipBox.innerHTML = '<span class="filtro-chip">Fecha: '+fmtFecha(state.filtroFecha)+' <button onclick="limpiarFiltroFecha()">✕</button></span>';
+  } else chipBox.innerHTML = '';
+
+  const estadoF = document.getElementById('filtro-estado').value;
+  const textoF = (document.getElementById('filtro-texto').value||'').toLowerCase();
+
+  let lista = state.eventos.slice().sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  if(state.filtroFecha) lista = lista.filter(e=>e.fecha===state.filtroFecha);
+  if(estadoF) lista = lista.filter(e=>e.estado===estadoF);
+  if(textoF){
+    lista = lista.filter(e=> e.empresa.toLowerCase().includes(textoF) || (e.colaboradores||[]).some(c=>c.nombre.toLowerCase().includes(textoF)) );
+  }
+
+  const cont = document.getElementById('eventos-lista');
+  if(lista.length===0){ cont.innerHTML = '<div class="empty-msg card">No hay eventos con estos filtros.</div>'; return; }
+
+  cont.innerHTML = lista.map(e=>{
+    const cls = e.estado==='Cancelado' ? 'canc' : (e.estado==='Realizado' ? 'ok' : 'pend');
+    const colabsHtml = (e.colaboradores||[]).map(c=>'<span class="chip'+(c.esEncargado?' enc':'')+'">'+(c.esEncargado?'★ ':'')+c.nombre+'</span>').join('');
+    return '<div class="card ev-card">'
+      + '<div class="ev-card-top">'
+      + '<div><div class="ev-empresa">'+e.empresa+'</div>'
+      + '<div class="ev-meta">'+fmtFecha(e.fecha)+' · '+e.horaAlistamiento+' – '+e.horaFin+' · '+e.tipoEventoNombre+' · '+e.modalidad+(e.esFestivo?' · <span style="color:var(--pend);">festivo</span>':'')+'</div></div>'
+      + '<div style="display:flex; align-items:center; gap:.6rem;"><span class="pill '+cls+'">'+e.estado+'</span>'
+      + '<button class="btn small" onclick="verDetalle(\''+e.id+'\')">Ver detalle →</button></div>'
+      + '</div>'
+      + '<div class="ev-colabs">'+colabsHtml+'</div>'
+      + '</div>';
+  }).join('');
+}
+
+function verDetalle(id){
+  state.selectedEventId = id;
+  document.getElementById('eventos-lista-wrap').hidden = true;
+  document.getElementById('eventos-detalle-wrap').hidden = false;
+  renderDetalle();
+}
+function volverALista(){
+  state.selectedEventId = null;
+  document.getElementById('eventos-lista-wrap').hidden = false;
+  document.getElementById('eventos-detalle-wrap').hidden = true;
+  renderEventos();
+}
+
+/* ---------------- cálculo de pago ---------------- */
+function calcularTotal(evento, colab){
+  let total = Number(evento.tarifaBase)||0;
+  total += (Number(colab.horasExtra)||0) * (state.config.valorHoraExtra||0);
+  if(colab.cumpleHorario && colab.cumpleUniforme){
+    total += (Number(evento.refrigerio1)||0) + (Number(evento.refrigerio2)||0) + (Number(evento.subsidioTransporte)||0);
+  }
+  if(colab.esEncargado) total += state.config.bonoEncargado||0;
+  if(evento.esFestivo) total += state.config.bonoFestivo||0;
+  total += Number(colab.bonoLibre)||0;
+  return total;
+}
+
+/* ---------------- WhatsApp ---------------- */
+function buildMensaje(evento, colab){
+  return 'Hola '+colab.nombre+', bonito día 👋\n\nEvento:\n'+fmtFecha(evento.fecha)+'\n'+evento.empresa+(evento.lugar?(' - '+evento.lugar):'')+'\n\nHora: '+evento.horaAlistamiento+' a '+evento.horaFin+'\nServicio: '+evento.tipoEventoNombre+(colab.esEncargado?'\nRol: Encargado(a) del evento':'')+(evento.esFestivo?'\n(Evento en día festivo)':'');
+}
+function enviarWhatsApp(eventoId, empleadoId){
+  const evento = state.eventos.find(e=>e.id===eventoId);
+  const colab = evento.colaboradores.find(c=>c.empleadoId===empleadoId);
+  const emp = state.empleados.find(e=>e.id===empleadoId);
+  const tel = (emp && emp.telefono) ? emp.telefono.replace(/\\D/g,'') : '';
+  const texto = buildMensaje(evento, colab);
+  if(!tel){ toast('❌ '+colab.nombre+' no tiene teléfono registrado — no se puede enviar.'); return; }
+  const link = 'https://wa.me/57'+tel+'?text='+encodeURIComponent(texto);
+  window.open(link, '_blank');
+  toast('✅ Mensaje generado para '+colab.nombre+'.');
+}
+
+/* ---------------- detalle de evento ---------------- */
+function renderDetalle(){
+  const wrap = document.getElementById('eventos-detalle-wrap');
+  if(!state.selectedEventId){ wrap.innerHTML=''; return; }
+  const evento = state.eventos.find(e=>e.id===state.selectedEventId);
+  if(!evento){ wrap.innerHTML = '<div class="empty-msg card">Este evento ya no existe.</div>'; return; }
+  const cls = evento.estado==='Cancelado' ? 'canc' : (evento.estado==='Realizado' ? 'ok' : 'pend');
+
+  let html = '<button class="btn ghost detail-back" onclick="volverALista()">← Volver a la lista</button>';
+
+  html += '<div class="card detail-head"><div class="row1"><div>'
+    + '<h3>'+evento.empresa+'</h3>'
+    + '<div class="ev-meta">'+fmtFecha(evento.fecha)+' · '+evento.horaAlistamiento+' → '+evento.horaFin+' · '+evento.tipoEventoNombre+' · '+evento.modalidad+(evento.lugar?(' · '+evento.lugar):'')+(evento.esFestivo?' · <span style="color:var(--pend);">festivo</span>':'')+'</div>'
+    + (evento.observaciones?('<div class="ev-meta" style="margin-top:.3rem;">Obs: '+evento.observaciones+'</div>'):'')
+    + '</div><span class="pill '+cls+'">'+evento.estado+'</span></div>'
+    + '<div class="detail-actions">'
+    + (evento.estado!=='Cancelado' ? '<button class="btn small" onclick="marcarRealizado(\''+evento.id+'\')">Marcar como realizado</button>' : '')
+    + (evento.estado!=='Cancelado' ? '<button class="btn small danger" onclick="cancelarEvento(\''+evento.id+'\')">Cancelar evento</button>' : '<span class="pill canc">Cancelado — el registro se conserva</span>')
+    + '</div></div>';
+
+  html += (evento.colaboradores||[]).map(c=>{
+    const total = calcularTotal(evento, c);
+    const pagoCls = c.estadoPago==='Pagado' ? 'ok' : 'pend';
+    const momentos = (c.momentosDestacados||[]).map(m=>'<li><span class="fecha">'+fmtFecha(m.fecha)+'</span>'+m.nota+'</li>').join('') || '<li style="color:var(--ink-soft); background:none; padding:0;">Sin momentos registrados aún.</li>';
+    const draftKey = evento.id+'|'+c.empleadoId;
+    return '<div class="card colab-card">'
+      + '<div class="colab-head"><span class="colab-name">'+(c.esEncargado?'★ ':'')+c.nombre+'</span>'
+      + '<div style="display:flex; gap:.5rem; align-items:center;">'
+      + '<span class="pill '+pagoCls+'">'+c.estadoPago+'</span>'
+      + '<button class="btn small" onclick="togglePago(\''+evento.id+'\',\''+c.empleadoId+'\')">Marcar '+(c.estadoPago==='Pagado'?'pendiente':'pagado')+'</button>'
+      + '<button class="btn small primary" onclick="enviarWhatsApp(\''+evento.id+'\',\''+c.empleadoId+'\')">WhatsApp</button>'
+      + '</div></div>'
+
+      + '<div class="colab-grid">'
+      + '<div class="field"><label>Llegada real</label><input type="time" value="'+c.horaLlegadaReal+'" onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{horaLlegadaReal:this.value})"></div>'
+      + '<div class="field"><label>Fin real</label><input type="time" value="'+c.horaFinReal+'" onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{horaFinReal:this.value})"></div>'
+      + '<div class="field"><label>Horas extra</label><input type="number" min="0" step="1" value="'+(c.horasExtra||0)+'" onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{horasExtra:Number(this.value)||0})"></div>'
+      + '<div class="field"><label>Bono libre (sin tema)</label><input type="number" min="0" step="1000" value="'+(c.bonoLibre||0)+'" onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{bonoLibre:Number(this.value)||0})"></div>'
+      + '</div>'
+
+      + '<div style="display:flex; gap:1.4rem; margin:.7rem 0;">'
+      + '<label class="check-row" style="text-transform:none; font-family:inherit;"><input type="checkbox" '+(c.cumpleHorario?'checked':'')+' onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{cumpleHorario:this.checked})"> Cumplió horario</label>'
+      + '<label class="check-row" style="text-transform:none; font-family:inherit;"><input type="checkbox" '+(c.cumpleUniforme?'checked':'')+' onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{cumpleUniforme:this.checked})"> Cumplió uniforme</label>'
+      + '</div>'
+
+      + '<div class="field"><label>Comprobante de transporte (referencia)</label>'
+      + '<div style="display:flex; gap:.4rem;"><input type="text" id="comp-'+evento.id+'-'+c.empleadoId+'" value="'+(c.comprobanteTransporte||'').replace(/"/g,'&quot;')+'" placeholder="Ej. Recibo Uber $8.000">'
+      + '<button class="btn small" onclick="guardarComprobante(\''+evento.id+'\',\''+c.empleadoId+'\')">Guardar</button></div></div>'
+
+      + '<div class="field"><label>Momentos destacados</label><ul class="momentos-list">'+momentos+'</ul>'
+      + '<div class="add-momento-row"><input type="text" id="momento-'+evento.id+'-'+c.empleadoId+'" placeholder="Agregar una nota del evento…" oninput="state.momentoDraft[\''+draftKey+'\']=this.value">'
+      + '<button class="btn small" onclick="agregarMomento(\''+evento.id+'\',\''+c.empleadoId+'\')">Agregar</button></div></div>'
+
+      + '<div class="colab-total"><span>Total a pagar</span><b>'+fmtCOP(total)+'</b></div>'
+      + '</div>';
+  }).join('');
+
+  wrap.innerHTML = html;
+}
+
+function actualizarColab(eventoId, empleadoId, patch){
+  const evento = state.eventos.find(e=>e.id===eventoId);
+  const nuevos = evento.colaboradores.map(c=> c.empleadoId===empleadoId ? {...c, ...patch} : c);
+  Data.updateEvento(eventoId, {colaboradores: nuevos}).then(()=>{ if(usandoLocal) renderActiveTab(); });
+}
+function guardarComprobante(eventoId, empleadoId){
+  const val = document.getElementById('comp-'+eventoId+'-'+empleadoId).value;
+  actualizarColab(eventoId, empleadoId, {comprobanteTransporte: val});
+  toast('Comprobante guardado.');
+}
+function agregarMomento(eventoId, empleadoId){
+  const key = eventoId+'|'+empleadoId;
+  const texto = (state.momentoDraft[key]||'').trim();
+  if(!texto){ toast('Escribe una nota antes de agregar.'); return; }
+  const evento = state.eventos.find(e=>e.id===eventoId);
+  const colab = evento.colaboradores.find(c=>c.empleadoId===empleadoId);
+  const momentos = [...(colab.momentosDestacados||[]), {nota:texto, fecha:todayStr()}];
+  actualizarColab(eventoId, empleadoId, {momentosDestacados:momentos});
+  state.momentoDraft[key] = '';
+}
+function togglePago(eventoId, empleadoId){
+  const evento = state.eventos.find(e=>e.id===eventoId);
+  const colab = evento.colaboradores.find(c=>c.empleadoId===empleadoId);
+  actualizarColab(eventoId, empleadoId, {estadoPago: colab.estadoPago==='Pagado' ? 'Pendiente' : 'Pagado'});
+}
+function marcarRealizado(eventoId){
+  Data.updateEvento(eventoId, {estado:'Realizado'}).then(()=>{ toast('Evento marcado como realizado.'); if(usandoLocal) renderDetalle(); });
+}
+function cancelarEvento(eventoId){
+  if(!confirm('¿Cancelar este evento? Quedará marcado como "Cancelado" y se conserva en el historial — no se borra.')) return;
+  const evento = state.eventos.find(e=>e.id===eventoId);
+  const cambios = [...(evento.cambios||[]), {fecha:new Date().toISOString(), resumen:'Evento cancelado.'}];
+  Data.updateEvento(eventoId, {estado:'Cancelado', cambios}).then(()=>{ toast('Evento cancelado (registro conservado).'); if(usandoLocal) renderDetalle(); });
+}
+
+/* ---------------- mi jornada (autoservicio colaborador) ---------------- */
+async function sha256Hex(texto){
+  try{
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){
+    // Contexto sin SubtleCrypto (poco común) — hash simple de respaldo, solo para que el prototipo no se rompa.
+    let h = 0;
+    for(let i=0;i<texto.length;i++){ h = ((h<<5)-h+texto.charCodeAt(i))|0; }
+    return 'fallback-'+h;
+  }
+}
+
+function mostrarRegistro(ev){
+  if(ev) ev.preventDefault();
+  document.getElementById('mj-login-form').hidden = true;
+  document.getElementById('mj-registro-form').hidden = false;
+  document.getElementById('mj-auth-title').textContent = 'Crear mi cuenta';
+  document.getElementById('mj-auth-sub').textContent = 'Regístrate una sola vez para poder marcar tu ingreso y tu salida.';
+}
+function mostrarLogin(ev){
+  if(ev) ev.preventDefault();
+  document.getElementById('mj-registro-form').hidden = true;
+  document.getElementById('mj-login-form').hidden = false;
+  document.getElementById('mj-auth-title').textContent = 'Iniciar sesión';
+  document.getElementById('mj-auth-sub').textContent = 'Ingresa tu cédula y tu contraseña para ver tus eventos.';
+}
+
+async function iniciarSesion(){
+  const cedula = document.getElementById('mj-login-cedula').value.trim();
+  const pass = document.getElementById('mj-login-pass').value;
+  if(!cedula || !pass){ toast('Ingresa tu cédula y tu contraseña.'); return; }
+
+  if(sb){
+    const email = cedula + '@' + CONFIG.EMAIL_DOMAIN;
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if(error){ toast('Cédula o contraseña incorrecta.'); return; }
+    document.getElementById('mj-login-pass').value = '';
+    await cargarTodoSupabase();
+    renderMiJornada();
+  }else{
+    const emp = state.empleados.find(e=>e.id===cedula);
+    if(!emp){ toast('No encontramos esa cédula. ¿Ya te registraste?'); return; }
+    if(!emp.passHash){ toast('Esa cuenta aún no tiene contraseña creada — usa "Regístrate" para crearla.'); return; }
+    const hash = await sha256Hex(pass);
+    if(hash !== emp.passHash){ toast('Contraseña incorrecta.'); return; }
+    state.miId = emp.id;
+    safeSetLocal('arto_mi_id', emp.id);
+    document.getElementById('mj-login-pass').value = '';
+    renderMiJornada();
+  }
+}
+
+async function registrarme(){
+  const nombre = document.getElementById('mj-reg-nombre').value.trim();
+  const cedula = document.getElementById('mj-reg-cedula').value.trim();
+  const telefono = document.getElementById('mj-reg-telefono').value.trim();
+  const pass = document.getElementById('mj-reg-pass').value;
+  const pass2 = document.getElementById('mj-reg-pass2').value;
+  if(!nombre || !cedula){ toast('Escribe tu nombre y tu cédula.'); return; }
+  if(pass.length<4){ toast('La contraseña debe tener al menos 4 caracteres.'); return; }
+  if(pass!==pass2){ toast('Las contraseñas no coinciden.'); return; }
+
+  if(sb){
+    const existente = state.empleados.find(e=>e.id===cedula);
+    if(existente && existente.tieneCuenta){ toast('Esa cédula ya tiene una cuenta creada — inicia sesión.'); mostrarLogin(); return; }
+
+    const email = cedula + '@' + CONFIG.EMAIL_DOMAIN;
+    const { data, error } = await sb.auth.signUp({ email, password: pass, options:{ data:{ cedula, nombre } } });
+    if(error){ toast('❌ No se pudo crear la cuenta: '+error.message); return; }
+
+    if(existente){
+      const patch = { tieneCuenta:true };
+      if(telefono) patch.telefono = telefono;
+      if(nombre) patch.nombre = nombre;
+      await sb.from('empleados').update(toEmpleadoRow(patch)).eq('id', cedula);
+    }else{
+      await sb.from('empleados').insert(toEmpleadoRow({
+        id: cedula, nombre, telefono, correo:'', cuentaPago:'Nequi', numeroCuenta:'', eps:'', talla:'M',
+        encargado:false, docs:{cedula:false,contrato:false,eps:false}, tieneCuenta:true,
+      }));
+    }
+    document.getElementById('mj-reg-pass').value = '';
+    document.getElementById('mj-reg-pass2').value = '';
+
+    if(!data.session){
+      toast('Cuenta creada. Si tu proyecto pide confirmar el correo, pídele al administrador que desactive "Confirm email" en Supabase — mientras tanto, intenta iniciar sesión.');
+      await refetchEmpleados();
+      mostrarLogin();
+      return;
+    }
+    await cargarTodoSupabase();
+    toast('Cuenta creada. ¡Bienvenido/a, '+nombre+'!');
+    renderMiJornada();
+  }else{
+    const existente = state.empleados.find(e=>e.id===cedula);
+    if(existente && existente.passHash){ toast('Esa cédula ya tiene una cuenta creada — inicia sesión.'); mostrarLogin(); return; }
+
+    const passHash = await sha256Hex(pass);
+    if(existente){
+      const patch = { passHash, tieneCuenta:true };
+      if(telefono) patch.telefono = telefono;
+      if(nombre) patch.nombre = nombre;
+      await Data.updateEmpleado(cedula, patch);
+    }else{
+      await Data.addEmpleado({
+        id: cedula, nombre, telefono, correo:'', cuentaPago:'Nequi', numeroCuenta:'', eps:'', talla:'M',
+        encargado:false, docs:{cedula:false,contrato:false,eps:false}, passHash, tieneCuenta:true,
+      });
+    }
+    state.miId = cedula;
+    safeSetLocal('arto_mi_id', cedula);
+    document.getElementById('mj-reg-pass').value = '';
+    document.getElementById('mj-reg-pass2').value = '';
+    toast('Cuenta creada. ¡Bienvenido/a, '+nombre+'!');
+    renderMiJornada();
+  }
+}
+
+async function cambiarUsuario(){
+  if(sb){ await sb.auth.signOut(); }
+  else{ safeRemoveLocal('arto_mi_id'); }
+  state.miId = null;
+  mostrarLogin();
+  const c = document.getElementById('mj-login-cedula'); if(c) c.value = '';
+  const p = document.getElementById('mj-login-pass'); if(p) p.value = '';
+  renderMiJornada();
+}
+function marcarHoraToggle(eventoId){
+  const evento = state.eventos.find(e=>e.id===eventoId);
+  const colab = evento.colaboradores.find(c=>c.empleadoId===state.miId);
+  if(!colab) return;
+  if(!colab.horaLlegadaReal){
+    actualizarColab(eventoId, state.miId, {horaLlegadaReal: nowHHMM()});
+    toast('🟢 Hora de ingreso registrada: '+nowHHMM()+'. ¡Buen evento!');
+  }else if(!colab.horaFinReal){
+    actualizarColab(eventoId, state.miId, {horaFinReal: nowHHMM()});
+    toast('🔴 Hora de salida registrada: '+nowHHMM()+'. Gracias por tu trabajo hoy.');
+  }
+}
+function guardarComprobanteMJ(eventoId, empleadoId){
+  const val = document.getElementById('mj-comp-'+eventoId).value;
+  actualizarColab(eventoId, empleadoId, {comprobanteTransporte: val});
+  toast('Comprobante guardado.');
+}
+function agregarMomentoMJ(eventoId, empleadoId){
+  const key = eventoId+'|'+empleadoId;
+  const texto = (state.momentoDraft[key]||'').trim();
+  if(!texto){ toast('Escribe una nota antes de agregar.'); return; }
+  const evento = state.eventos.find(e=>e.id===eventoId);
+  const colab = evento.colaboradores.find(c=>c.empleadoId===empleadoId);
+  const momentos = [...(colab.momentosDestacados||[]), {nota:texto, fecha:todayStr()}];
+  actualizarColab(eventoId, empleadoId, {momentosDestacados:momentos});
+  state.momentoDraft[key] = '';
+}
+
+function mjTarjetaEvento(evento, colab){
+  const cls = evento.estado==='Cancelado' ? 'canc' : (evento.estado==='Realizado' ? 'ok' : 'pend');
+  const cancelado = evento.estado==='Cancelado';
+  const total = calcularTotal(evento, colab);
+  const momentos = (colab.momentosDestacados||[]).map(m=>'<li><span class="fecha">'+fmtFecha(m.fecha)+'</span>'+m.nota+'</li>').join('') || '<li style="color:var(--ink-soft); background:none; padding:0;">Sin momentos registrados aún.</li>';
+
+  let accionesHtml;
+  if(cancelado){
+    accionesHtml = '<p class="sub" style="margin:.4rem 0 0;">Este evento fue cancelado — no se requiere registrar llegada ni salida.</p>';
+  }else{
+    let botonPrincipal;
+    if(!colab.horaLlegadaReal){
+      botonPrincipal = '<button class="btn primary mj-toggle-btn" onclick="marcarHoraToggle(\''+evento.id+'\')">🟢 Marcar hora de ingreso</button>';
+    }else if(!colab.horaFinReal){
+      botonPrincipal = '<button class="btn primary mj-toggle-btn" onclick="marcarHoraToggle(\''+evento.id+'\')">🔴 Marcar hora de salida</button>';
+    }else{
+      botonPrincipal = '<button class="btn mj-toggle-btn" disabled>✓ Jornada completa</button>';
+    }
+    accionesHtml = ''
+      + botonPrincipal
+      + '<div class="mj-times"><span>Ingreso: <b>'+(colab.horaLlegadaReal||'—')+'</b></span><span>Salida: <b>'+(colab.horaFinReal||'—')+'</b></span></div>'
+      + '<details class="mj-correct"><summary>✎ Corregir horas manualmente</summary>'
+      + '<div class="colab-grid">'
+      + '<div class="field"><label>Ingreso</label><input type="time" value="'+colab.horaLlegadaReal+'" onchange="actualizarColab(\''+evento.id+'\',\''+colab.empleadoId+'\',{horaLlegadaReal:this.value})"></div>'
+      + '<div class="field"><label>Salida</label><input type="time" value="'+colab.horaFinReal+'" onchange="actualizarColab(\''+evento.id+'\',\''+colab.empleadoId+'\',{horaFinReal:this.value})"></div>'
+      + '</div></details>'
+      + '<div class="field" style="margin-top:.8rem;"><label>Comprobante de transporte (referencia)</label>'
+      + '<div style="display:flex; gap:.4rem;"><input type="text" id="mj-comp-'+evento.id+'" value="'+(colab.comprobanteTransporte||'').replace(/"/g,'&quot;')+'" placeholder="Ej. Recibo Uber $8.000">'
+      + '<button class="btn small" onclick="guardarComprobanteMJ(\''+evento.id+'\',\''+colab.empleadoId+'\')">Guardar</button></div></div>'
+      + '<div class="field"><label>Momentos destacados</label><ul class="momentos-list">'+momentos+'</ul>'
+      + '<div class="add-momento-row"><input type="text" placeholder="Agregar una nota del evento…" oninput="state.momentoDraft[\''+evento.id+'|'+colab.empleadoId+'\']=this.value">'
+      + '<button class="btn small" onclick="agregarMomentoMJ(\''+evento.id+'\',\''+colab.empleadoId+'\')">Agregar</button></div></div>';
+  }
+
+  return '<div class="card colab-card">'
+    + '<div class="colab-head"><span class="colab-name">'+evento.empresa+(colab.esEncargado?' <span class="pill ok">encargado</span>':'')+'</span>'
+    + '<span class="pill '+cls+'">'+evento.estado+'</span></div>'
+    + '<div class="ev-meta" style="margin-bottom:.7rem;">'+fmtFecha(evento.fecha)+' · '+evento.horaAlistamiento+' → '+evento.horaFin+' · '+evento.tipoEventoNombre+(evento.esFestivo?' · <span style="color:var(--pend);">festivo</span>':'')+(evento.lugar?(' · '+evento.lugar):'')+'</div>'
+    + accionesHtml
+    + '<div class="colab-total"><span>Pago estimado <span class="pill '+(colab.estadoPago==='Pagado'?'ok':'pend')+'" style="margin-left:.4rem;">'+colab.estadoPago+'</span></span><b>'+fmtCOP(total)+'</b></div>'
+    + '</div>';
+}
+
+function renderMiJornada(){
+  const identBox = document.getElementById('mj-identificacion');
+  const panel = document.getElementById('mj-panel');
+  if(!state.miId){
+    identBox.hidden = false;
+    panel.hidden = true;
+    return;
+  }
+  const emp = state.empleados.find(e=>e.id===state.miId);
+  if(!emp){
+    // el id guardado ya no existe (p.ej. datos de ejemplo distintos) — pedir de nuevo
+    cambiarUsuario();
+    return;
+  }
+  identBox.hidden = true;
+  panel.hidden = false;
+  document.getElementById('mj-hola').textContent = 'Hola, ' + emp.nombre;
+
+  const misEventos = state.eventos.filter(e => (e.colaboradores||[]).some(c=>c.empleadoId===state.miId));
+  const today = todayStr();
+  const proximos = misEventos.filter(e=> e.fecha>=today && e.estado!=='Cancelado').sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const anteriores = misEventos.filter(e=> e.fecha<today || e.estado==='Cancelado').sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+  let html = '';
+  html += '<div class="mj-section-label">Hoy y próximos</div>';
+  html += proximos.length
+    ? proximos.map(e=>mjTarjetaEvento(e, e.colaboradores.find(c=>c.empleadoId===state.miId))).join('')
+    : '<div class="empty-msg card">No tienes eventos programados por ahora.</div>';
+
+  if(anteriores.length){
+    html += '<div class="mj-section-label">Eventos anteriores</div>';
+    html += anteriores.slice(0,8).map(e=>mjTarjetaEvento(e, e.colaboradores.find(c=>c.empleadoId===state.miId))).join('');
+  }
+  document.getElementById('mj-eventos').innerHTML = html;
+
+  const ym = today.slice(0,7);
+  const jornadasMes = misEventos.filter(e=> e.fecha.startsWith(ym) && e.estado!=='Cancelado');
+  let totalMes = 0;
+  jornadasMes.forEach(e=>{ totalMes += calcularTotal(e, e.colaboradores.find(c=>c.empleadoId===state.miId)); });
+  document.getElementById('mj-recap').innerHTML = '<div class="nomina-total-box">'
+    + '<div class="stat"><div class="n">'+jornadasMes.length+'</div><div class="l">Eventos este mes</div></div>'
+    + '<div class="stat"><div class="n">'+fmtCOP(totalMes)+'</div><div class="l">Total estimado del mes</div></div>'
+    + '</div>';
+}
+
+/* ---------------- empleados ---------------- */
+function crearEmpleado(ev){
+  ev.preventDefault();
+  const id = document.getElementById('em-cedula').value.trim();
+  if(!id){ toast('La cédula es obligatoria.'); return; }
+  if(state.empleados.some(e=>e.id===id)){ toast('Ya existe un colaborador con esa cédula.'); return; }
+  const obj = {
+    id, nombre: document.getElementById('em-nombre').value,
+    telefono: document.getElementById('em-telefono').value,
+    correo: document.getElementById('em-correo').value,
+    cuentaPago: document.getElementById('em-cuentaPago').value,
+    numeroCuenta: document.getElementById('em-numeroCuenta').value,
+    eps: document.getElementById('em-eps').value,
+    talla: document.getElementById('em-talla').value,
+    encargado: document.getElementById('em-encargado').checked,
+    docs: {
+      cedula: document.getElementById('em-doc-cedula').checked,
+      contrato: document.getElementById('em-doc-contrato').checked,
+      eps: document.getElementById('em-doc-eps').checked,
+    },
+    tieneCuenta: false,
+  };
+  Data.addEmpleado(obj).then(()=>{ toast('Colaborador guardado.'); ev.target.reset(); });
+}
+function renderEmpleados(){
+  const tbl = document.getElementById('tabla-empleados');
+  const filas = state.empleados.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(e=>{
+    const docsOk = (e.docs&&e.docs.cedula?1:0)+(e.docs&&e.docs.contrato?1:0)+(e.docs&&e.docs.eps?1:0);
+    const acceso = e.tieneCuenta ? '<span class="pill ok">Registrado</span>' : '<span class="pill muted">Sin registrar</span>';
+    return '<tr><td>'+e.nombre+(e.encargado?' <span class="pill ok" style="margin-left:.3rem;">encargado</span>':'')+'</td>'
+      + '<td class="mono">'+e.id+'</td>'
+      + '<td>'+(e.telefono || '<span style="color:var(--danger);">sin registrar</span>')+'</td>'
+      + '<td>'+e.cuentaPago+' <span class="mono" style="color:var(--ink-soft);">'+(e.numeroCuenta||'')+'</span></td>'
+      + '<td>'+(e.eps||'—')+'</td><td>'+e.talla+'</td>'
+      + '<td>'+docsOk+'/3 <span style="color:var(--ink-soft);">docs</span></td>'
+      + '<td>'+acceso+'</td></tr>';
+  }).join('');
+  tbl.innerHTML = '<thead><tr><th>Nombre</th><th>Cédula</th><th>Teléfono</th><th>Cuenta</th><th>EPS</th><th>Talla</th><th>Documentos</th><th>Acceso Mi Jornada</th></tr></thead><tbody>'+(filas||'<tr><td colspan="8" class="empty-msg">Sin colaboradores registrados.</td></tr>')+'</tbody>';
+}
+
+/* ---------------- nomina ---------------- */
+function renderNomina(){
+  const empId = document.getElementById('nomina-empleado').value;
+  const ym = document.getElementById('nomina-mes').value;
+  const cont = document.getElementById('nomina-resultado');
+  if(!empId){ cont.innerHTML = '<div class="empty-msg card">Selecciona un colaborador para ver su recibo.</div>'; return; }
+  const emp = state.empleados.find(e=>e.id===empId);
+  const jornadas = state.eventos.filter(e=> e.fecha.startsWith(ym) && e.estado!=='Cancelado' && (e.colaboradores||[]).some(c=>c.empleadoId===empId));
+  jornadas.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  let total = 0;
+  const filas = jornadas.map(e=>{
+    const colab = e.colaboradores.find(c=>c.empleadoId===empId);
+    const t = calcularTotal(e, colab);
+    total += t;
+    return '<tr><td>'+fmtFecha(e.fecha)+'</td><td>'+e.empresa+'</td><td>'+e.tipoEventoNombre+(colab.esEncargado?' · encargado':'')+'</td><td><span class="pill '+(colab.estadoPago==='Pagado'?'ok':'pend')+'">'+colab.estadoPago+'</span></td><td class="mono" style="text-align:right;">'+fmtCOP(t)+'</td></tr>';
+  }).join('');
+
+  cont.innerHTML = '<div class="nomina-total-box">'
+    + '<div class="stat"><div class="n">'+jornadas.length+'</div><div class="l">Eventos en el periodo</div></div>'
+    + '<div class="stat"><div class="n">'+fmtCOP(total)+'</div><div class="l">Total a pagar</div></div>'
+    + '</div>'
+    + '<div class="tbl-wrap card"><table class="data"><thead><tr><th>Fecha</th><th>Empresa</th><th>Servicio</th><th>Estado pago</th><th style="text-align:right;">Total jornada</th></tr></thead><tbody>'
+    + (filas || '<tr><td colspan="5" class="empty-msg">'+emp.nombre+' no tiene jornadas registradas en este periodo.</td></tr>')
+    + '</tbody></table></div>';
+}
+
+/* ---------------- gastos ---------------- */
+function crearGasto(ev){
+  ev.preventDefault();
+  const empId = document.getElementById('ga-empleado').value;
+  const emp = state.empleados.find(e=>e.id===empId);
+  const obj = {
+    fecha: document.getElementById('ga-fecha').value,
+    empleadoId: empId, empleadoNombre: emp?emp.nombre:'',
+    concepto: document.getElementById('ga-concepto').value,
+    valor: Number(document.getElementById('ga-valor').value)||0,
+    comprobante: document.getElementById('ga-comprobante').value,
+    estadoReembolso: 'Pendiente',
+  };
+  Data.addGasto(obj).then(()=>{ toast('Gasto registrado.'); ev.target.reset(); document.getElementById('ga-fecha').value = todayStr(); });
+}
+function toggleReembolso(id){
+  const g = state.gastos.find(x=>x.id===id);
+  Data.updateGasto(id, {estadoReembolso: g.estadoReembolso==='Reembolsado' ? 'Pendiente' : 'Reembolsado'});
+}
+function renderGastos(){
+  const tbl = document.getElementById('tabla-gastos');
+  const filas = state.gastos.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(g=>{
+    const cls = g.estadoReembolso==='Reembolsado' ? 'ok' : 'pend';
+    return '<tr><td>'+fmtFecha(g.fecha)+'</td><td>'+g.empleadoNombre+'</td><td>'+g.concepto+'</td><td class="mono">'+g.comprobante+'</td>'
+      + '<td class="mono" style="text-align:right;">'+fmtCOP(g.valor)+'</td>'
+      + '<td><span class="pill '+cls+'">'+g.estadoReembolso+'</span></td>'
+      + '<td><button class="btn small" onclick="toggleReembolso(\''+g.id+'\')">Marcar '+(g.estadoReembolso==='Reembolsado'?'pendiente':'reembolsado')+'</button></td></tr>';
+  }).join('');
+  tbl.innerHTML = '<thead><tr><th>Fecha</th><th>Colaborador</th><th>Concepto</th><th>Comprobante</th><th style="text-align:right;">Valor</th><th>Estado</th><th></th></tr></thead><tbody>'+(filas||'<tr><td colspan="7" class="empty-msg">Sin gastos registrados.</td></tr>')+'</tbody>';
+}
+
+/* ---------------- directorio ---------------- */
+function crearDirectorio(ev){
+  ev.preventDefault();
+  const obj = {
+    canal: document.getElementById('di-canal').value,
+    responsable: document.getElementById('di-responsable').value,
+    tipo: document.getElementById('di-tipo').value,
+    contacto: document.getElementById('di-contacto').value,
+  };
+  Data.addDirectorio(obj).then(()=>{ toast('Contacto agregado al directorio.'); ev.target.reset(); });
+}
+function renderDirectorio(){
+  const tbl = document.getElementById('tabla-directorio');
+  const filas = state.directorio.map(d=>'<tr><td>'+d.canal+'</td><td>'+d.responsable+'</td><td><span class="pill muted">'+d.tipo+'</span></td><td class="mono">'+d.contacto+'</td></tr>').join('');
+  tbl.innerHTML = '<thead><tr><th>Área / motivo</th><th>Responsable</th><th>Canal</th><th>Contacto</th></tr></thead><tbody>'+(filas||'<tr><td colspan="4" class="empty-msg">Sin contactos registrados.</td></tr>')+'</tbody>';
+}
+
+init();
+</script>
+</body>
+</html>
