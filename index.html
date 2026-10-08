@@ -22,6 +22,7 @@
       <div class="field"><label>Contraseña</label><input type="password" id="mj-login-pass" onkeydown="if(event.key==='Enter') iniciarSesion()"></div>
       <button class="btn primary" style="width:100%; justify-content:center;" onclick="iniciarSesion()">Ingresar</button>
       <p class="mj-switch">¿Primera vez aquí? <a href="#" onclick="mostrarRegistro(event)">Regístrate</a></p>
+      <p class="mj-switch" style="margin-top:.4rem !important; color:var(--ink-soft);">¿Olvidaste tu contraseña? Pídele a la oficina que te la reinicie.</p>
     </div>
 
     <div id="mj-registro-form" hidden>
@@ -58,6 +59,7 @@
         </div>
         <button class="gear-btn" id="btn-settings" data-rol="gerente" onclick="toggleSettings()">⚙ Ajustes</button>
         <div class="sesion-box"><span class="sesion-quien"><span id="sesion-nombre"></span><span class="tag" id="sesion-rol"></span></span>
+          <button class="gear-btn btn-clave" onclick="abrirCambioClave()">Contraseña</button>
           <button class="gear-btn btn-salir" onclick="cerrarSesion()">Cerrar sesión</button></div>
       </div>
     </div>
@@ -89,6 +91,13 @@
         <div class="card id-card">
           <div class="disp">Tu cédula aún no está en la lista de colaboradores</div>
           <p>Tu cuenta ya existe, pero la oficina todavía no te ha registrado como colaborador. Pídele al gerente que te agregue en la pestaña Empleados con tu número de cédula y vuelve a entrar.</p>
+        </div>
+      </div>
+
+      <div id="mj-inactivo" hidden>
+        <div class="card id-card">
+          <div class="disp">Tu acceso está desactivado</div>
+          <p>La oficina desactivó tu acceso al aplicativo. Si crees que es un error, comunícate con el gerente.</p>
         </div>
       </div>
 
@@ -207,21 +216,30 @@
               <span class="check-row"><input type="checkbox" id="em-doc-eps"><label style="margin:0; text-transform:none; font-family:inherit;">Certificado EPS</label></span>
             </div>
           </div>
-          <p style="font-size:.78rem; color:var(--ink-soft); margin:-.2rem 0 1rem;">El colaborador crea su propia cuenta y contraseña desde "Mi Jornada", usando esta misma cédula — aquí no se define contraseña.</p>
+          <p style="font-size:.78rem; color:var(--ink-soft); margin:-.2rem 0 1rem;">El colaborador crea su propia cuenta y contraseña con esta misma cédula ("Regístrate"). Si después la olvida, se la reinicias desde el botón "Contraseña" de la lista.</p>
           <button type="submit" class="btn primary">Guardar colaborador</button>
         </form>
       </div>
 
+      <div class="toolbar">
+        <input type="text" id="emp-buscar" placeholder="Buscar por nombre, cédula o teléfono…" style="width:auto; min-width:260px;" oninput="renderEmpleados()">
+        <label class="check-row check-linea"><input type="checkbox" id="emp-inactivos" onchange="renderEmpleados()"> Mostrar inactivos<span id="emp-inactivos-n"></span></label>
+      </div>
       <div class="tbl-wrap card"><table class="data" id="tabla-empleados"></table></div>
     </section>
 
     <!-- ================= NOMINA ================= -->
     <section class="panel" id="tab-nomina" hidden>
       <h2>Nómina y recibo por colaborador</h2>
-      <p class="sub">Valida cuántos eventos hizo cada persona en el periodo y genera el mismo total de "Pagos_julio_Q1.xlsx", sin digitarlo a mano.</p>
+      <p class="sub">Valida cuántos eventos hizo cada persona en el periodo y genera el mismo total de "Pagos_julio_Q1.xlsx", sin digitarlo a mano. Elige el mes y la quincena: Q1 va del 1 al 15 y Q2 del 16 a fin de mes.</p>
       <div class="toolbar">
-        <select id="nomina-empleado" style="width:auto; min-width:220px;" onchange="renderNomina()"></select>
         <select id="nomina-mes" style="width:auto;" onchange="renderNomina()"></select>
+        <select id="nomina-periodo" style="width:auto;" onchange="renderNomina()">
+          <option value="Q1">Quincena 1 (1 al 15)</option>
+          <option value="Q2">Quincena 2 (16 a fin de mes)</option>
+          <option value="">Mes completo</option>
+        </select>
+        <select id="nomina-empleado" style="width:auto; min-width:220px;" onchange="renderNomina()"></select>
       </div>
       <div id="nomina-resultado"></div>
     </section>
@@ -279,6 +297,14 @@
     <span>Arto Operaciones — prototipo funcional</span>
     <span id="modo-datos">Conectando…</span>
   </footer>
+</div>
+
+<!-- ventana emergente para editar (colaborador, evento, contraseñas) -->
+<div class="modal-fondo" id="modal-fondo" hidden onclick="if(event.target===this) cerrarModal()">
+  <div class="card modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal-cabecera"><span class="disp" id="modal-titulo"></span><button class="btn ghost small" type="button" onclick="cerrarModal()" aria-label="Cerrar">✕</button></div>
+    <div id="modal-cuerpo"></div>
+  </div>
 </div>
 
 <div id="toast"></div>

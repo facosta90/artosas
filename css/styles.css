@@ -328,3 +328,49 @@ nav.tabs::-webkit-scrollbar{ display:none; }
   .stat-mini-row{ font-size:.6rem; }
 }
 @media (max-width:340px){ .colab-grid{ grid-template-columns:1fr !important; } .brand .disp{ font-size:1rem; } }
+
+/* ============================================================
+   PAQUETE 1: ventana de edición, empleados inactivos, nómina
+   ============================================================ */
+body.con-modal{ overflow:hidden; }
+.modal-fondo{ position:fixed; inset:0; z-index:40; background:rgba(18,22,28,.55); display:flex; align-items:flex-start; justify-content:center; padding:clamp(10px,4vh,48px) 12px; overflow-y:auto; }
+.modal{ width:100%; max-width:760px; padding:1.2rem 1.4rem 1.4rem; border-top:3px solid var(--accent); }
+.modal-cabecera{ display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1rem; }
+.modal-cabecera .disp{ font-size:1.15rem; }
+.modal-acciones{ display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; margin-top:1.1rem; padding-top:1rem; border-top:1px solid var(--line); }
+.modal-acciones .espacio{ flex:1; }
+.modal-acciones a.btn{ text-decoration:none; }
+.nota-modal{ font-size:.78rem; color:var(--ink-soft); margin:.4rem 0 0; line-height:1.5; }
+.nota-chica{ font-size:.72rem; color:var(--ink-soft); font-style:normal; }
+.clave-grande{ font-size:1.6rem; font-weight:600; letter-spacing:.08em; text-align:center; padding:.9rem; margin:.6rem 0; background:var(--surface-2); border:1px dashed var(--line); border-radius:8px; user-select:all; }
+.grid-4{ display:grid; grid-template-columns:repeat(4,1fr); gap:.8rem; }
+.check-linea{ display:inline-flex; align-items:center; gap:.45rem; text-transform:none !important; font-family:inherit !important; font-size:.85rem !important; letter-spacing:0 !important; color:var(--ink) !important; margin:0; cursor:pointer; }
+.check-linea input{ width:auto; }
+.checks-fila{ display:flex; gap:1.2rem; flex-wrap:wrap; }
+.checklist .fila-colab{ display:flex; align-items:center; justify-content:space-between; gap:.8rem; }
+.checklist .fila-colab > label:first-child{ flex:1; min-width:0; }
+.checklist label.enc-radio{ flex:none; gap:.3rem; font-size:.72rem; color:var(--accent-ink); white-space:nowrap; cursor:pointer; }
+.modal .checklist{ max-height:260px; }
+.acciones-fila{ display:flex; gap:.35rem; flex-wrap:wrap; }
+tr.fila-inactiva td{ color:var(--ink-soft); }
+tr.fila-total td{ border-top:2px solid var(--line); font-weight:600; background:var(--surface-2); }
+table.data th.num, table.data td.num{ text-align:right; white-space:nowrap; }
+.recibo-cabecera{ display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap; margin:.4rem 0 0; }
+.recibo-cabecera .disp{ font-size:1.25rem; }
+.historial{ padding:1rem 1.2rem; margin-top:1rem; }
+.historial summary{ cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); }
+.historial ul{ list-style:none; margin:.8rem 0 0; padding:0; display:flex; flex-direction:column; gap:.55rem; }
+.historial li{ font-size:.82rem; line-height:1.45; padding-left:.8rem; border-left:2px solid var(--line); overflow-wrap:anywhere; }
+.historial li .fecha{ display:block; font-family:'IBM Plex Mono',monospace; font-size:.66rem; color:var(--ink-soft); }
+@media (max-width:700px){
+  .grid-4{ grid-template-columns:1fr 1fr; }
+  .modal-fondo{ padding:0; display:block; }
+  .modal{ max-width:none; min-height:100vh; min-height:100dvh; border-radius:0; padding:1rem 1rem 2rem; }
+  .modal-acciones .btn{ flex:1 1 auto; justify-content:center; }
+  .modal-acciones .espacio{ display:none; }
+  table.data td.num{ white-space:normal; }
+  .appbar-top{ grid-template-columns:1fr auto auto; grid-template-areas:"marca marca salir" "quien clave ajustes" "cifras cifras cifras"; }
+  .btn-clave{ grid-area:clave; justify-self:end; }
+  tr.fila-total td:empty{ display:none; }
+  .recibo-cabecera{ align-items:flex-start; }
+}

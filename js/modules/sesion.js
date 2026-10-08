@@ -72,6 +72,7 @@ async function entrarAlAplicativo(user, opciones){
 }
 
 function limpiarSesionLocal(){
+  if(typeof cerrarModal==='function') cerrarModal();
   clearInterval(refrescoTimer); refrescoTimer = null;
   state.miId = null; state.miNombre = ''; state.rol = null;
   state.selectedEventId = null; state.filtroFecha = null;

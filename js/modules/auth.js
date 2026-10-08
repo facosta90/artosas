@@ -103,3 +103,62 @@ async function registrarme(){
     entrarLocalEmpleado(cedula);
   }
 }
+
+/* ============================================================
+   Contraseñas
+   - El gerente reinicia la de un colaborador (contraseña temporal).
+   - Cada persona puede cambiar la suya desde el botón "Contraseña".
+   ============================================================ */
+function claveTemporal(){
+  let n;
+  try{ const a = new Uint32Array(1); crypto.getRandomValues(a); n = a[0] % 10000; }
+  catch(e){ n = Math.floor(Math.random()*10000); }
+  return 'arto' + String(n).padStart(4,'0');
+}
+
+function abrirReinicioClave(cedula){
+  if(!esGerente()) return;
+  const e = state.empleados.find(x=>x.id===cedula);
+  if(!e) return;
+  abrirModal('Reiniciar contraseña',
+    '<p class="nota-modal" style="margin-top:0;">Se le pondrá una contraseña temporal a <b>'+esc(e.nombre)+'</b> (cédula '+esc(e.id)+'). Con ella entra y luego la cambia desde el botón "Contraseña". Las sesiones que tenga abiertas se cierran.</p>'
+    + '<div class="field"><label>Contraseña temporal (mínimo 6 caracteres)</label><input type="text" id="rc-clave" class="mono" value="'+claveTemporal()+'" autocomplete="off"></div>'
+    + '<div class="modal-acciones"><span class="espacio"></span>'
+    + '<button type="button" class="btn ghost" onclick="cerrarModal()">Cancelar</button>'
+    + '<button type="button" class="btn primary" onclick="confirmarReinicioClave(\''+esc(e.id)+'\')">Reiniciar contraseña</button></div>');
+}
+
+function confirmarReinicioClave(cedula){
+  const e = state.empleados.find(x=>x.id===cedula);
+  const clave = document.getElementById('rc-clave').value.trim();
+  if(clave.length<6){ toast('La contraseña debe tener al menos 6 caracteres.'); return; }
+  Data.reiniciarClave(cedula, clave).then(()=>{
+    const tel = (e.telefono||'').replace(/\D/g,'');
+    const texto = 'Hola '+e.nombre+'. Tu contraseña temporal de Arto Operaciones es: '+clave+'\nEntra con tu cédula y cámbiala en el botón "Contraseña".';
+    abrirModal('Contraseña reiniciada',
+      '<p class="nota-modal" style="margin-top:0;">La nueva contraseña temporal de <b>'+esc(e.nombre)+'</b> es:</p>'
+      + '<div class="clave-grande mono">'+esc(clave)+'</div>'
+      + '<p class="nota-modal">Anótala o envíasela ahora: por seguridad no se vuelve a mostrar.</p>'
+      + '<div class="modal-acciones"><span class="espacio"></span>'
+      + (tel ? '<a class="btn" target="_blank" rel="noopener" href="https://wa.me/57'+tel+'?text='+encodeURIComponent(texto)+'">Enviar por WhatsApp</a>' : '')
+      + '<button type="button" class="btn primary" onclick="cerrarModal()">Listo</button></div>');
+  }).catch(()=>{});
+}
+
+function abrirCambioClave(){
+  abrirModal('Cambiar mi contraseña',
+    '<form onsubmit="guardarMiClave(event)">'
+    + '<div class="field"><label>Nueva contraseña (mínimo 6 caracteres)</label><input type="password" id="mc-clave" autocomplete="new-password" required></div>'
+    + '<div class="field"><label>Confirmar nueva contraseña</label><input type="password" id="mc-clave2" autocomplete="new-password" required></div>'
+    + '<div class="modal-acciones"><span class="espacio"></span>'
+    + '<button type="button" class="btn ghost" onclick="cerrarModal()">Cancelar</button>'
+    + '<button type="submit" class="btn primary">Guardar contraseña</button></div></form>');
+}
+
+function guardarMiClave(ev){
+  ev.preventDefault();
+  const c1 = document.getElementById('mc-clave').value, c2 = document.getElementById('mc-clave2').value;
+  if(c1.length<6){ toast('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if(c1!==c2){ toast('Las contraseñas no coinciden.'); return; }
+  Data.cambiarMiClave(c1).then(()=>{ cerrarModal(); toast('Contraseña actualizada.'); }).catch(()=>{});
+}

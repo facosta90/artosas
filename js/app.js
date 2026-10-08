@@ -122,19 +122,27 @@ function poblarSelectTipos(){
 }
 function poblarSelectsEmpleados(){
   const box = document.getElementById('nv-colabs');
+  const activos = state.empleados.filter(e=>e.activo!==false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
   if(box){
-    box.innerHTML = state.empleados.map(e=>(
-      '<label><input type="checkbox" class="nv-colab-chk" value="'+e.id+'">'+
-      '<span>'+e.nombre+(e.telefono?'':' <em style="color:var(--danger); font-style:normal;">(sin teléfono)</em>')+'</span>'+
-      '<span class="star" data-enc="'+e.id+'" onclick="marcarEncargado(this)">☆ encargado</span></label>'
-    )).join('') || '<div class="empty-msg">Aún no hay colaboradores registrados.</div>';
+    // Se conserva lo que el gerente ya había marcado: la lista se vuelve a pintar con cada refresco automático de datos.
+    const marcados = Array.from(box.querySelectorAll('.nv-colab-chk:checked')).map(c=>c.value);
+    const encSel = box.querySelector('.star[data-selected="1"]');
+    const encId = encSel ? encSel.dataset.enc : null;
+    box.innerHTML = activos.map(e=>(
+      '<label><input type="checkbox" class="nv-colab-chk" value="'+esc(e.id)+'"'+(marcados.includes(e.id)?' checked':'')+'>'+
+      '<span>'+esc(e.nombre)+(e.telefono?'':' <em style="color:var(--danger); font-style:normal;">(sin teléfono)</em>')+'</span>'+
+      (e.id===encId
+        ? '<span class="star" data-enc="'+esc(e.id)+'" data-selected="1" style="color:var(--accent-ink);" onclick="marcarEncargado(this); event.preventDefault();">★ encargado</span></label>'
+        : '<span class="star" data-enc="'+esc(e.id)+'" onclick="marcarEncargado(this); event.preventDefault();">☆ encargado</span></label>')
+    )).join('') || '<div class="empty-msg">Aún no hay colaboradores activos.</div>';
   }
   const gaSel = document.getElementById('ga-empleado');
-  if(gaSel){ gaSel.innerHTML = state.empleados.map(e=>'<option value="'+e.id+'">'+e.nombre+'</option>').join(''); }
+  if(gaSel){ const cur = gaSel.value; gaSel.innerHTML = activos.map(e=>'<option value="'+esc(e.id)+'">'+esc(e.nombre)+'</option>').join(''); if(cur) gaSel.value = cur; }
   const noSel = document.getElementById('nomina-empleado');
   if(noSel){
     const cur = noSel.value;
-    noSel.innerHTML = '<option value="">Selecciona un colaborador…</option>' + state.empleados.map(e=>'<option value="'+e.id+'">'+e.nombre+'</option>').join('');
+    const todos = state.empleados.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    noSel.innerHTML = '<option value="">Todos los colaboradores (resumen)</option>' + todos.map(e=>'<option value="'+esc(e.id)+'">'+esc(e.nombre)+(e.activo===false?' (inactivo)':'')+'</option>').join('');
     if(cur) noSel.value = cur;
   }
   poblarSelectMeses();
@@ -149,10 +157,19 @@ function poblarSelectMeses(){
     const [y,m] = ym.split('-');
     return '<option value="'+ym+'">'+MESES[Number(m)-1]+' '+y+'</option>';
   }).join('');
-  if(cur && meses.includes(cur)) sel.value = cur; else sel.value = meses[meses.length-1];
+  if(cur && meses.includes(cur)) sel.value = cur;
+  else{
+    // primera vez: mes y quincena de hoy (si hay eventos ese mes)
+    const hoy = todayStr();
+    sel.value = meses.includes(hoy.slice(0,7)) ? hoy.slice(0,7) : meses[meses.length-1];
+    const per = document.getElementById('nomina-periodo');
+    if(per && sel.value===hoy.slice(0,7)) per.value = quincenaDe(hoy);
+  }
 }
 
 function marcarEncargado(el){
+  // el encargado siempre queda marcado como asistente
+  const chk = el.parentElement.querySelector('.nv-colab-chk'); if(chk) chk.checked = true;
   document.querySelectorAll('#nv-colabs .star').forEach(s=>{ s.textContent = '☆ encargado'; s.style.color=''; });
   el.textContent = '★ encargado';
   el.style.color = 'var(--accent-ink)';

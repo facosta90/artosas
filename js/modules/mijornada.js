@@ -81,8 +81,16 @@ function renderMiJornada(){
     // hay sesión, pero la cédula no está en la lista de colaboradores
     sinFicha.hidden = false;
     panel.hidden = true;
+    document.getElementById('mj-inactivo').hidden = true;
     return;
   }
+  const inactivoBox = document.getElementById('mj-inactivo');
+  if(emp.activo===false && !esGerente()){
+    // la oficina desactivó el acceso de este colaborador
+    sinFicha.hidden = true; panel.hidden = true; inactivoBox.hidden = false;
+    return;
+  }
+  inactivoBox.hidden = true;
   sinFicha.hidden = true;
   panel.hidden = false;
   document.getElementById('mj-hola').textContent = 'Hola, ' + emp.nombre;
@@ -106,9 +114,16 @@ function renderMiJornada(){
 
   const ym = today.slice(0,7);
   const jornadasMes = misEventos.filter(e=> e.fecha.startsWith(ym) && e.estado!=='Cancelado');
-  let totalMes = 0;
-  jornadasMes.forEach(e=>{ totalMes += calcularTotal(e, e.colaboradores.find(c=>c.empleadoId===state.miId)); });
+  let totalMes = 0, totalQ = 0, nQ = 0;
+  const qHoy = quincenaDe(today);
+  jornadasMes.forEach(e=>{
+    const t = calcularTotal(e, e.colaboradores.find(c=>c.empleadoId===state.miId));
+    totalMes += t;
+    if(quincenaDe(e.fecha)===qHoy){ totalQ += t; nQ++; }
+  });
   document.getElementById('mj-recap').innerHTML = '<div class="nomina-total-box">'
+    + '<div class="stat"><div class="n">'+nQ+'</div><div class="l">Eventos esta quincena ('+qHoy+')</div></div>'
+    + '<div class="stat"><div class="n">'+fmtCOP(totalQ)+'</div><div class="l">Estimado de la quincena</div></div>'
     + '<div class="stat"><div class="n">'+jornadasMes.length+'</div><div class="l">Eventos este mes</div></div>'
     + '<div class="stat"><div class="n">'+fmtCOP(totalMes)+'</div><div class="l">Total estimado del mes</div></div>'
     + '</div>';

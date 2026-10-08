@@ -37,7 +37,7 @@ function fromEmpleadoRow(r){
   return {
     id:r.id, nombre:r.nombre||'', telefono:r.telefono||'', correo:r.correo||'', cuentaPago:r.cuenta_pago||'Nequi',
     numeroCuenta:r.numero_cuenta||'', eps:r.eps||'', talla:r.talla||'M', encargado:!!r.encargado,
-    docs:r.docs||{cedula:false,contrato:false,eps:false}, tieneCuenta:!!r.tiene_cuenta,
+    docs:r.docs||{cedula:false,contrato:false,eps:false}, tieneCuenta:!!r.tiene_cuenta, activo:r.activo!==false,
   };
 }
 function toEmpleadoRow(o){
@@ -53,6 +53,7 @@ function toEmpleadoRow(o){
   if('encargado' in o) row.encargado = o.encargado;
   if('docs' in o) row.docs = o.docs;
   if('tieneCuenta' in o) row.tiene_cuenta = o.tieneCuenta;
+  if('activo' in o) row.activo = o.activo;
   return row;
 }
 function fromGastoRow(r){

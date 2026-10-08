@@ -2,7 +2,13 @@
    Utilidades: formatos, toast, ids, localStorage
    ============================================================ */
 
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+/* Fecha de hoy en la hora del dispositivo (Colombia), no en UTC: antes, después de las 7 p. m. "hoy" ya era mañana. */
+function todayStr(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+/* Texto seguro para insertar en HTML (nombres con comillas, <, &, etc.). */
+function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+/* Quincena de una fecha AAAA-MM-DD: Q1 = días 1 a 15, Q2 = día 16 en adelante. */
+function quincenaDe(iso){ return Number(String(iso||'').slice(8,10)) <= 15 ? 'Q1' : 'Q2'; }
+function nombreMes(ym){ const p = String(ym||'').split('-'); return (MESES[Number(p[1])-1]||'')+' '+(p[0]||''); }
 function fmtCOP(n){ n = Number(n)||0; return '$ ' + n.toLocaleString('es-CO'); }
 function fmtFecha(iso){
   if(!iso) return '—';
@@ -35,3 +41,20 @@ function vigilarTablas(){
   etiquetarTablas(main);
   new MutationObserver(()=>etiquetarTablas(main)).observe(main, {childList:true, subtree:true});
 }
+
+/* ---------------- ventana emergente (formularios de edición) ----------------
+   Vive fuera de <main>, así el refresco automático de datos no borra lo que se está escribiendo. */
+function abrirModal(titulo, html){
+  document.getElementById('modal-titulo').textContent = titulo;
+  document.getElementById('modal-cuerpo').innerHTML = html;
+  document.getElementById('modal-fondo').hidden = false;
+  document.body.classList.add('con-modal');
+  const m = document.getElementById('modal'); if(m) m.scrollTop = 0;
+}
+function cerrarModal(){
+  document.getElementById('modal-fondo').hidden = true;
+  document.getElementById('modal-cuerpo').innerHTML = '';
+  document.body.classList.remove('con-modal');
+}
+function modalAbierto(){ const f = document.getElementById('modal-fondo'); return !!f && !f.hidden; }
+document.addEventListener('keydown', ev=>{ if(ev.key==='Escape' && modalAbierto()) cerrarModal(); });
