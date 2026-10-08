@@ -22,7 +22,13 @@ async function refetchDirectorio(){ const {data, error} = await sb.from('directo
 async function refetchConfig(){
   const {data, error} = await sb.from('config').select('*').eq('id','general').maybeSingle();
   avisarError('config', error);
-  if(data) state.config = {valorHoraExtra:data.valor_hora_extra||8000, bonoEncargado:data.bono_encargado||15000, bonoFestivo:data.bono_festivo||20000};
+  if(data) state.config = {
+    valorHoraExtra:data.valor_hora_extra||8000, bonoEncargado:data.bono_encargado||15000, bonoFestivo:data.bono_festivo||20000,
+    // reglas del cálculo automático (columnas de 06_horas_extra.sql; si aún no existen se usan estos valores)
+    autoHorario: data.auto_horario!==false,
+    toleranciaMin: data.tolerancia_min==null ? 10 : Number(data.tolerancia_min),
+    extraBloqueMin: Number(data.extra_bloque_min)===30 ? 30 : 60,
+  };
 }
 async function cargarTodoSupabase(){
   if(!state.miId) return;

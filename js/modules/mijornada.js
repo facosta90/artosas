@@ -2,17 +2,37 @@
    Módulo: Mi jornada (autoservicio colaborador)
    ============================================================ */
 
-function marcarHoraToggle(eventoId){
+async function marcarHoraToggle(eventoId){
   const evento = state.eventos.find(e=>e.id===eventoId);
   const colab = evento.colaboradores.find(c=>c.empleadoId===state.miId);
   if(!colab) return;
-  if(!colab.horaLlegadaReal){
-    actualizarColab(eventoId, state.miId, {horaLlegadaReal: nowHHMM()});
-    toast('🟢 Hora de ingreso registrada: '+nowHHMM()+'. ¡Buen evento!');
-  }else if(!colab.horaFinReal){
-    actualizarColab(eventoId, state.miId, {horaFinReal: nowHHMM()});
-    toast('🔴 Hora de salida registrada: '+nowHHMM()+'. Gracias por tu trabajo hoy.');
+  const campo = !colab.horaLlegadaReal ? 'horaLlegadaReal' : (!colab.horaFinReal ? 'horaFinReal' : null);
+  if(!campo) return;
+  let hora = nowHHMM();
+  if(sb && !esGerente()){
+    // la hora que vale es la del servidor: se espera la respuesta antes de confirmar
+    try{ await Data.actualizarMiJornada(eventoId, {[campo]: hora}); }catch(e){ return; }
+    const ev2 = state.eventos.find(e=>e.id===eventoId);
+    const yo = ev2 && (ev2.colaboradores||[]).find(c=>c.empleadoId===state.miId);
+    if(yo && yo[campo]) hora = yo[campo];
+  }else{
+    actualizarColab(eventoId, state.miId, {[campo]: hora});
   }
+  toast(campo==='horaLlegadaReal' ? '🟢 Hora de ingreso registrada: '+hora+'. ¡Buen evento!' : '🔴 Hora de salida registrada: '+hora+'. Gracias por tu trabajo hoy.');
+}
+/* ¿El colaborador puede marcar ahora? La llegada, solo el día del evento; la salida, ese día o el siguiente. */
+function ventanaDeMarcado(evento, colab){
+  if(esGerente()) return {ok:true};
+  const hoy = todayStr();
+  if(!colab.horaLlegadaReal){
+    if(evento.fecha > hoy) return {ok:false, texto:'🕒 Podrás marcar el '+fmtFecha(evento.fecha)};
+    if(evento.fecha < hoy) return {ok:false, texto:'Sin llegada registrada — avísale a la oficina'};
+    return {ok:true};
+  }
+  const d = new Date(evento.fecha+'T12:00:00'); d.setDate(d.getDate()+1);
+  const manana = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if(hoy > manana) return {ok:false, texto:'Sin salida registrada — avísale a la oficina'};
+  return {ok:true};
 }
 function guardarComprobanteMJ(eventoId, empleadoId){
   const val = document.getElementById('mj-comp-'+eventoId).value;
@@ -41,7 +61,10 @@ function mjTarjetaEvento(evento, colab){
     accionesHtml = '<p class="sub" style="margin:.4rem 0 0;">Este evento fue cancelado — no se requiere registrar llegada ni salida.</p>';
   }else{
     let botonPrincipal;
-    if(!colab.horaLlegadaReal){
+    const ventana = ventanaDeMarcado(evento, colab);
+    if(!ventana.ok && !(colab.horaLlegadaReal && colab.horaFinReal)){
+      botonPrincipal = '<button class="btn mj-toggle-btn" disabled>'+ventana.texto+'</button>';
+    }else if(!colab.horaLlegadaReal){
       botonPrincipal = '<button class="btn primary mj-toggle-btn" onclick="marcarHoraToggle(\''+evento.id+'\')">🟢 Marcar hora de ingreso</button>';
     }else if(!colab.horaFinReal){
       botonPrincipal = '<button class="btn primary mj-toggle-btn" onclick="marcarHoraToggle(\''+evento.id+'\')">🔴 Marcar hora de salida</button>';
@@ -51,11 +74,14 @@ function mjTarjetaEvento(evento, colab){
     accionesHtml = ''
       + botonPrincipal
       + '<div class="mj-times"><span>Ingreso: <b>'+(colab.horaLlegadaReal||'—')+'</b></span><span>Salida: <b>'+(colab.horaFinReal||'—')+'</b></span></div>'
-      + '<details class="mj-correct"><summary>✎ Corregir horas manualmente</summary>'
-      + '<div class="colab-grid">'
-      + '<div class="field"><label>Ingreso</label><input type="time" value="'+colab.horaLlegadaReal+'" onchange="actualizarColab(\''+evento.id+'\',\''+colab.empleadoId+'\',{horaLlegadaReal:this.value})"></div>'
-      + '<div class="field"><label>Salida</label><input type="time" value="'+colab.horaFinReal+'" onchange="actualizarColab(\''+evento.id+'\',\''+colab.empleadoId+'\',{horaFinReal:this.value})"></div>'
-      + '</div></details>'
+      + ((colab.horaLlegadaReal || colab.horaFinReal) ? lineasCalculo(evento, colab, calculoJornada(evento, colab), false) : '')
+      + (esGerente()
+        ? '<details class="mj-correct"><summary>✎ Corregir horas manualmente</summary>'
+          + '<div class="colab-grid">'
+          + '<div class="field"><label>Ingreso</label><input type="time" value="'+colab.horaLlegadaReal+'" onchange="actualizarColab(\''+evento.id+'\',\''+colab.empleadoId+'\',{horaLlegadaReal:this.value})"></div>'
+          + '<div class="field"><label>Salida</label><input type="time" value="'+colab.horaFinReal+'" onchange="actualizarColab(\''+evento.id+'\',\''+colab.empleadoId+'\',{horaFinReal:this.value})"></div>'
+          + '</div></details>'
+        : '<p class="nota-chica" style="margin:.2rem 0 0;">La hora queda registrada al pulsar el botón. Si marcaste por error, pídele a la oficina que la corrija.</p>')
       + '<div class="field" style="margin-top:.8rem;"><label>Comprobante de transporte (referencia)</label>'
       + '<div style="display:flex; gap:.4rem;"><input type="text" id="mj-comp-'+evento.id+'" value="'+(colab.comprobanteTransporte||'').replace(/"/g,'&quot;')+'" placeholder="Ej. Recibo Uber $8.000">'
       + '<button class="btn small" onclick="guardarComprobanteMJ(\''+evento.id+'\',\''+colab.empleadoId+'\')">Guardar</button></div></div>'

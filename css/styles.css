@@ -379,3 +379,23 @@ table.data th.num, table.data td.num{ text-align:right; white-space:nowrap; }
 #mj-rec-codigo{ font-size:1.4rem; letter-spacing:.35em; text-align:center; }
 .bloque-correo{ padding-bottom:1rem; margin-bottom:1rem; border-bottom:1px solid var(--line); }
 .bloque-correo .field{ margin-bottom:.2rem; }
+
+/* ---------- horario y horas extra automáticos ---------- */
+.calc-jornada{ font-size:.8rem; line-height:1.5; background:var(--surface-2); border-radius:6px; padding:.55rem .7rem; margin:.5rem 0 .8rem; display:flex; flex-direction:column; gap:.25rem; }
+.calc-jornada a{ font-size:.72rem; white-space:nowrap; }
+.espacio-toolbar{ flex:1; }
+
+/* ---------- imprimir / PDF de la nómina ---------- */
+@page{ size:landscape; margin:12mm; }
+@media print{
+  body{ background:#fff; color:#000; }
+  header.appbar, footer, #toast, .modal-fondo, .settings-pop, #login-screen, .toolbar, .panel > h2, .panel > .sub, button, .btn{ display:none !important; }
+  .shell{ max-width:none; padding:0; }
+  .card{ box-shadow:none !important; border-color:#bbb !important; }
+  .tbl-wrap{ overflow:visible !important; }
+  table.data{ font-size:10.5px; }
+  table.data tr{ break-inside:avoid; }
+  .nomina-total-box .stat{ border-color:#bbb; padding:.4rem .8rem; }
+  .nomina-total-box .stat .n{ font-size:1.2rem; color:#000; }
+  .pill{ border:1px solid #999; background:none !important; color:#000 !important; }
+}

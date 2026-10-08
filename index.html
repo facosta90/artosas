@@ -92,10 +92,15 @@
   </header>
 
   <div class="card settings-pop" id="settings-pop" hidden>
-    <h4>Configuración de bonos</h4>
+    <h4>Bonos</h4>
     <div class="field"><label>Valor hora extra</label><input type="number" id="cfg-horaExtra" step="1000"></div>
     <div class="field"><label>Bono por ser encargado</label><input type="number" id="cfg-bonoEncargado" step="1000"></div>
     <div class="field"><label>Bono por festivo</label><input type="number" id="cfg-bonoFestivo" step="1000"></div>
+    <h4 style="margin-top:1rem;">Horario y horas extra</h4>
+    <label class="check-row check-linea" style="margin-bottom:.7rem;"><input type="checkbox" id="cfg-autoHorario"> Calcular automáticamente con la llegada y la salida</label>
+    <div class="field"><label>Tolerancia de llegada (minutos)</label><input type="number" id="cfg-tolerancia" min="0" max="120" step="1"></div>
+    <div class="field"><label>Las horas extra se cuentan por</label>
+      <select id="cfg-bloque"><option value="60">Hora completa</option><option value="30">Media hora</option></select></div>
     <button class="btn primary small" style="width:100%;" onclick="guardarConfig()">Guardar</button>
   </div>
 
@@ -257,6 +262,9 @@
           <option value="">Mes completo</option>
         </select>
         <select id="nomina-empleado" style="width:auto; min-width:220px;" onchange="renderNomina()"></select>
+        <span class="espacio-toolbar"></span>
+        <button class="btn" onclick="exportarNominaExcel()">⬇ Excel</button>
+        <button class="btn" onclick="imprimirNomina()">🖨 Imprimir / PDF</button>
       </div>
       <div id="nomina-resultado"></div>
     </section>
@@ -340,6 +348,7 @@
 <script src="js/modules/mijornada.js"></script>
 <script src="js/modules/empleados.js"></script>
 <script src="js/modules/nomina.js"></script>
+<script src="js/modules/exportar.js"></script>
 <script src="js/modules/gastos.js"></script>
 <script src="js/modules/directorio.js"></script>
 <script src="js/app.js"></script>

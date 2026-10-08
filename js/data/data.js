@@ -115,6 +115,26 @@ const Data = {
       renderActiveTab();
     }
   },
+  /* Marca como pagadas varias jornadas de una vez. items = [{eventoId, empleadoId, patch}] */
+  async marcarPagados(items){
+    const porEvento = {};
+    items.forEach(it=>{ (porEvento[it.eventoId] = porEvento[it.eventoId] || []).push(it); });
+    if(sb) await refetchEventos();   // parte de los datos más recientes para no pisar cambios de otros
+    for(const eventoId of Object.keys(porEvento)){
+      const ev = state.eventos.find(e=>String(e.id)===String(eventoId));
+      if(!ev) continue;
+      const nuevos = ev.colaboradores.map(c=>{
+        const it = porEvento[eventoId].find(x=>x.empleadoId===c.empleadoId);
+        return it ? {...c, ...it.patch} : c;
+      });
+      if(sb){
+        const {error} = await sb.from('eventos').update({colaboradores: nuevos}).eq('id', ev.id);
+        if(error){ toast('❌ '+error.message); await refetchEventos(); renderActiveTab(); throw error; }
+      }else{ ev.colaboradores = nuevos; }
+    }
+    if(sb) await refetchEventos();
+    renderActiveTab();
+  },
   async addGasto(obj){
     if(sb){
       const {error} = await sb.from('gastos').insert(toGastoRow(obj));
@@ -149,8 +169,12 @@ const Data = {
     if(sb){
       const {error} = await sb.from('config').update({
         valor_hora_extra: obj.valorHoraExtra, bono_encargado: obj.bonoEncargado, bono_festivo: obj.bonoFestivo,
+        auto_horario: obj.autoHorario, tolerancia_min: obj.toleranciaMin, extra_bloque_min: obj.extraBloqueMin,
       }).eq('id','general');
-      if(error){ toast('❌ '+error.message); throw error; }
+      if(error){
+        toast(/auto_horario|tolerancia_min|extra_bloque_min/.test(error.message||'') ? '⚠ Falta ejecutar en Supabase el archivo 06_horas_extra.sql.' : '❌ '+error.message);
+        throw error;
+      }
       state.config = obj;
     }else{
       state.config = obj;

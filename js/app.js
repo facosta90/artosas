@@ -83,6 +83,9 @@ function toggleSettings(){
     document.getElementById('cfg-horaExtra').value = state.config.valorHoraExtra;
     document.getElementById('cfg-bonoEncargado').value = state.config.bonoEncargado;
     document.getElementById('cfg-bonoFestivo').value = state.config.bonoFestivo;
+    document.getElementById('cfg-autoHorario').checked = state.config.autoHorario!==false;
+    document.getElementById('cfg-tolerancia').value = state.config.toleranciaMin;
+    document.getElementById('cfg-bloque').value = String(state.config.extraBloqueMin||60);
   }
 }
 function guardarConfig(){
@@ -91,11 +94,15 @@ function guardarConfig(){
     valorHoraExtra: Number(document.getElementById('cfg-horaExtra').value)||0,
     bonoEncargado: Number(document.getElementById('cfg-bonoEncargado').value)||0,
     bonoFestivo: Number(document.getElementById('cfg-bonoFestivo').value)||0,
+    autoHorario: document.getElementById('cfg-autoHorario').checked,
+    toleranciaMin: Math.min(120, Math.max(0, Math.round(Number(document.getElementById('cfg-tolerancia').value)||0))),
+    extraBloqueMin: document.getElementById('cfg-bloque').value==='30' ? 30 : 60,
   };
-  Data.setConfig(obj);
-  document.getElementById('settings-pop').hidden = true;
-  toast('Configuración de bonos actualizada.');
-  renderActiveTab();
+  Data.setConfig(obj).then(()=>{
+    document.getElementById('settings-pop').hidden = true;
+    toast('Ajustes guardados.');
+    renderActiveTab();
+  }).catch(()=>{});
 }
 
 /* ---------------- mini stats ---------------- */

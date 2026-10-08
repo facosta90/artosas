@@ -113,12 +113,74 @@ function volverALista(){
 }
 
 /* ---------------- cálculo de pago ---------------- */
+/* ---------------- horario y horas extra automáticos ----------------
+   Con la llegada y la salida que marca el colaborador se decide:
+     - cumplió horario: llegó a más tardar a la hora de alistamiento + tolerancia
+     - horas extra: tiempo trabajado después de la hora de fin, en bloques completos
+   El gerente puede ajustar a mano cualquiera de los dos (queda "manual").
+   Una jornada ya PAGADA no se recalcula: conserva los valores con los que se pagó. */
+function minutosDe(h){ const m = /^(\d{1,2}):(\d{2})/.exec(String(h||'')); return m ? Number(m[1])*60+Number(m[2]) : null; }
+
+function calculoJornada(evento, colab){
+  const cfg = state.config || {};
+  const tolerancia = cfg.toleranciaMin==null ? 10 : Number(cfg.toleranciaMin)||0;
+  const bloque = Number(cfg.extraBloqueMin)===30 ? 30 : 60;
+  const r = {
+    cumpleHorario: !!colab.cumpleHorario, horasExtra: Number(colab.horasExtra)||0,
+    origenHorario: 'manual', origenExtra: 'manual',   // 'auto' | 'manual' | 'pagado' | 'sin-registro'
+    minutosTarde: null, minutosDespues: null, tolerancia: tolerancia, bloque: bloque,
+  };
+  const lleg = minutosDe(colab.horaLlegadaReal), sal = minutosDe(colab.horaFinReal);
+  const limite = minutosDe(evento.horaAlistamiento || evento.horaInicio), fin = minutosDe(evento.horaFin);
+  if(lleg!=null && limite!=null){
+    let t = lleg - limite;
+    if(t > 720) t -= 1440; else if(t < -720) t += 1440;   // eventos que cruzan la medianoche
+    r.minutosTarde = t;
+  }
+  if(sal!=null && fin!=null){
+    let d = sal - fin;
+    if(d < -720) d += 1440;                               // salió después de la medianoche
+    r.minutosDespues = d;
+  }
+  if(colab.estadoPago==='Pagado'){ r.origenHorario = r.origenExtra = 'pagado'; return r; }
+  if(cfg.autoHorario===false) return r;
+
+  // lo que el gerente ya había tocado antes de existir el cálculo automático se respeta como manual
+  const horarioManual = colab.horarioManual===true || (colab.horarioManual===undefined && colab.cumpleHorario===false);
+  const extraManual = colab.extraManual===true || (colab.extraManual===undefined && (Number(colab.horasExtra)||0) > 0);
+
+  if(!horarioManual){
+    if(r.minutosTarde!=null){ r.cumpleHorario = r.minutosTarde <= tolerancia; r.origenHorario = 'auto'; }
+    else r.origenHorario = 'sin-registro';
+  }
+  if(!extraManual){
+    if(r.minutosDespues!=null){ r.horasExtra = Math.floor(Math.max(0, r.minutosDespues)/bloque) * bloque/60; r.origenExtra = 'auto'; }
+    else{ r.horasExtra = 0; r.origenExtra = 'sin-registro'; }
+  }
+  return r;
+}
+function fmtHoras(h){ return String(h).replace('.', ',')+' h'; }
+function textoHorario(c){
+  if(c.minutosTarde==null) return 'Sin llegada marcada';
+  if(c.minutosTarde<=0) return 'Llegó a tiempo';
+  return c.minutosTarde<=c.tolerancia ? 'Llegó '+c.minutosTarde+' min después (dentro de la tolerancia de '+c.tolerancia+')' : 'Llegó '+c.minutosTarde+' min tarde';
+}
+function textoExtra(c){
+  if(c.minutosDespues==null) return 'Sin salida marcada';
+  if(c.minutosDespues<=0) return 'Salió a la hora';
+  return 'Salió '+c.minutosDespues+' min después del fin';
+}
+
 /* Misma fórmula de siempre, separada por concepto para poder mostrarla en el recibo. */
 function desglosePago(evento, colab){
-  const cumple = !!(colab.cumpleHorario && colab.cumpleUniforme);
+  const calc = calculoJornada(evento, colab);
+  const cumple = !!(calc.cumpleHorario && colab.cumpleUniforme);
   const d = {
+    calc: calc, cumple: cumple, horasExtraCant: calc.horasExtra,
+    ref1: cumple ? (Number(evento.refrigerio1)||0) : 0,
+    ref2: cumple ? (Number(evento.refrigerio2)||0) : 0,
     tarifa: Number(evento.tarifaBase)||0,
-    horasExtra: (Number(colab.horasExtra)||0) * (state.config.valorHoraExtra||0),
+    horasExtra: calc.horasExtra * (state.config.valorHoraExtra||0),
     refrigerios: cumple ? (Number(evento.refrigerio1)||0) + (Number(evento.refrigerio2)||0) : 0,
     transporte: cumple ? (Number(evento.subsidioTransporte)||0) : 0,
     encargado: colab.esEncargado ? (state.config.bonoEncargado||0) : 0,
@@ -171,6 +233,7 @@ function renderDetalle(){
     + '</div></div>';
 
   html += (evento.colaboradores||[]).map(c=>{
+    const calc = calculoJornada(evento, c);
     const total = calcularTotal(evento, c);
     const pagoCls = c.estadoPago==='Pagado' ? 'ok' : 'pend';
     const momentos = (c.momentosDestacados||[]).map(m=>'<li><span class="fecha">'+fmtFecha(m.fecha)+'</span>'+m.nota+'</li>').join('') || '<li style="color:var(--ink-soft); background:none; padding:0;">Sin momentos registrados aún.</li>';
@@ -186,14 +249,16 @@ function renderDetalle(){
       + '<div class="colab-grid">'
       + '<div class="field"><label>Llegada real</label><input type="time" value="'+c.horaLlegadaReal+'" onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{horaLlegadaReal:this.value})"></div>'
       + '<div class="field"><label>Fin real</label><input type="time" value="'+c.horaFinReal+'" onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{horaFinReal:this.value})"></div>'
-      + '<div class="field"><label>Horas extra</label><input type="number" min="0" step="1" value="'+(c.horasExtra||0)+'" onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{horasExtra:Number(this.value)||0})"></div>'
+      + '<div class="field"><label>Horas extra</label><input type="number" min="0" step="0.5" value="'+calc.horasExtra+'" onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{horasExtra:Math.max(0,Number(this.value)||0), extraManual:true})"></div>'
       + '<div class="field"><label>Bono libre (sin tema)</label><input type="number" min="0" step="1000" value="'+(c.bonoLibre||0)+'" onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{bonoLibre:Number(this.value)||0})"></div>'
       + '</div>'
 
       + '<div style="display:flex; gap:1.4rem; margin:.7rem 0;">'
-      + '<label class="check-row" style="text-transform:none; font-family:inherit;"><input type="checkbox" '+(c.cumpleHorario?'checked':'')+' onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{cumpleHorario:this.checked})"> Cumplió horario</label>'
+      + '<label class="check-row" style="text-transform:none; font-family:inherit;"><input type="checkbox" '+(calc.cumpleHorario?'checked':'')+' onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{cumpleHorario:this.checked, horarioManual:true})"> Cumplió horario</label>'
       + '<label class="check-row" style="text-transform:none; font-family:inherit;"><input type="checkbox" '+(c.cumpleUniforme?'checked':'')+' onchange="actualizarColab(\''+evento.id+'\',\''+c.empleadoId+'\',{cumpleUniforme:this.checked})"> Cumplió uniforme</label>'
       + '</div>'
+
+      + lineasCalculo(evento, c, calc, true)
 
       + '<div class="field"><label>Comprobante de transporte (referencia)</label>'
       + '<div style="display:flex; gap:.4rem;"><input type="text" id="comp-'+evento.id+'-'+c.empleadoId+'" value="'+(c.comprobanteTransporte||'').replace(/"/g,'&quot;')+'" placeholder="Ej. Recibo Uber $8.000">'
@@ -211,6 +276,30 @@ function renderDetalle(){
   html += historialHtml(evento);
 
   wrap.innerHTML = html;
+}
+
+/* Explica de dónde salió "cumplió horario" y las horas extra. conAcciones = vista del gerente. */
+function lineasCalculo(evento, c, calc, conAcciones){
+  const etiqueta = (origen, cual)=>{
+    if(origen==='auto') return '<span class="pill ok">automático</span>';
+    if(origen==='pagado') return '<span class="pill muted">fijado al pagar</span>';
+    if(origen==='sin-registro') return '<span class="pill muted">sin registro</span>';
+    if(state.config.autoHorario===false) return '<span class="pill muted">manual</span>';
+    return '<span class="pill pend">ajuste manual</span>'
+      + (conAcciones ? ' <a href="#" onclick="volverAAutomatico(event,\''+evento.id+'\',\''+c.empleadoId+'\',\''+cual+'\')">volver a automático</a>' : '');
+  };
+  const limite = evento.horaAlistamiento || evento.horaInicio || '—';
+  return '<div class="calc-jornada">'
+    + '<div><b>Horario:</b> '+textoHorario(calc)+' <span class="nota-chica">(debía llegar a las '+esc(limite)+')</span> → '
+    + (calc.cumpleHorario ? 'cumple' : '<span style="color:var(--danger);">no cumple, pierde refrigerios y transporte</span>')+' '+etiqueta(calc.origenHorario,'horario')+'</div>'
+    + '<div><b>Horas extra:</b> '+textoExtra(calc)+' <span class="nota-chica">(fin a las '+esc(evento.horaFin||'—')+')</span> → '
+    + fmtHoras(calc.horasExtra)+' '+etiqueta(calc.origenExtra,'extra')+'</div>'
+    + '</div>';
+}
+function volverAAutomatico(ev, eventoId, empleadoId, cual){
+  if(ev) ev.preventDefault();
+  if(!esGerente()) return;
+  actualizarColab(eventoId, empleadoId, cual==='horario' ? {horarioManual:false, cumpleHorario:true} : {extraManual:false, horasExtra:0});
 }
 
 function historialHtml(evento){
@@ -390,6 +479,7 @@ function detalleSoloLectura(evento, cls){
       + '<div class="colab-head"><span class="colab-name">Tu participación'+(yo.esEncargado?' <span class="pill ok">encargado</span>':'')+'</span>'
       + '<span class="pill '+(yo.estadoPago==='Pagado'?'ok':'pend')+'">'+(yo.estadoPago||'Pendiente')+'</span></div>'
       + '<div class="mj-times"><span>Ingreso: <b>'+(yo.horaLlegadaReal||'—')+'</b></span><span>Salida: <b>'+(yo.horaFinReal||'—')+'</b></span></div>'
+      + lineasCalculo(evento, yo, calculoJornada(evento, yo), false)
       + '<div class="colab-total"><span>Tu pago estimado</span><b>'+fmtCOP(calcularTotal(evento, yo))+'</b></div>'
       + '<button class="btn small" style="margin-top:.8rem;" onclick="switchTab(\'mijornada\')">Registrar llegada y salida en Mi Jornada →</button>'
       + '</div>';
@@ -428,7 +518,14 @@ function togglePago(eventoId, empleadoId){
   if(!esGerente()) return;
   const evento = state.eventos.find(e=>e.id===eventoId);
   const colab = evento.colaboradores.find(c=>c.empleadoId===empleadoId);
-  actualizarColab(eventoId, empleadoId, {estadoPago: colab.estadoPago==='Pagado' ? 'Pendiente' : 'Pagado'});
+  if(colab.estadoPago==='Pagado'){ actualizarColab(eventoId, empleadoId, {estadoPago:'Pendiente'}); return; }
+  actualizarColab(eventoId, empleadoId, parchePagado(evento, colab));
+}
+/* Al marcar "Pagado" se guardan el horario y las horas extra con los que se liquidó, para que no cambien después. */
+function parchePagado(evento, colab){
+  const calc = calculoJornada(evento, colab);
+  return {estadoPago:'Pagado', cumpleHorario:calc.cumpleHorario, horasExtra:calc.horasExtra,
+    horarioManual: calc.origenHorario==='manual', extraManual: calc.origenExtra==='manual'};
 }
 function marcarRealizado(eventoId){
   if(!esGerente()) return;

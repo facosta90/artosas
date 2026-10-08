@@ -37,7 +37,8 @@ function renderNomina(){
     const notas = [];
     if(colab.esEncargado) notas.push('encargado');
     if(e.esFestivo) notas.push('festivo');
-    if(!(colab.cumpleHorario && colab.cumpleUniforme)) notas.push('sin bonificación: no cumplió '+(!colab.cumpleHorario?'horario':'uniforme'));
+    if(d.horasExtraCant>0) notas.push(fmtHoras(d.horasExtraCant)+' extra');
+    if(!d.cumple) notas.push('sin bonificación: no cumplió '+(!d.calc.cumpleHorario?'horario':'uniforme'));
     return '<tr><td>'+fmtFecha(e.fecha)+' <span class="pill muted">'+quincenaDe(e.fecha)+'</span></td>'
       + '<td>'+esc(e.empresa)+'</td>'
       + '<td>'+esc(e.tipoEventoNombre)+(notas.length?' <span class="nota-chica">· '+notas.join(' · ')+'</span>':'')+'</td>'
@@ -52,7 +53,9 @@ function renderNomina(){
 
   cont.innerHTML = '<div class="recibo-cabecera"><div><div class="disp">'+esc(emp.nombre)+'</div>'
     + '<div class="ev-meta">'+esc(textoPeriodo(ym, q))+' · '+esc(emp.cuentaPago||'')+' '+esc(emp.numeroCuenta||'')+'</div></div>'
-    + '<button class="btn small" onclick="verReciboDe(\'\')">← Ver resumen de todos</button></div>'
+    + '<div class="acciones-fila">'
+    + (pendiente>0 ? '<button class="btn small primary" onclick="marcarPeriodoPagado(\''+esc(empId)+'\')">✓ Marcar periodo como pagado</button>' : '')
+    + '<button class="btn small" onclick="verReciboDe(\'\')">← Ver resumen de todos</button></div></div>'
     + '<div class="nomina-total-box">'
     + '<div class="stat"><div class="n">'+jornadas.length+'</div><div class="l">Eventos en el periodo</div></div>'
     + '<div class="stat"><div class="n">'+fmtCOP(total)+'</div><div class="l">Total del periodo</div></div>'
@@ -101,3 +104,27 @@ function nominaResumen(eventos, ym, q){
     + (lista.length ? '<tr class="fila-total"><td>Total</td><td></td><td class="mono num">'+jornadas+'</td><td class="mono num">'+fmtCOP(total-pendiente)+'</td><td class="mono num">'+fmtCOP(pendiente)+'</td><td class="mono num"><b>'+fmtCOP(total)+'</b></td><td></td></tr>' : '')
     + '</tbody></table></div>';
 }
+
+/* Jornadas (evento + colaborador) del periodo elegido en pantalla. empId vacío = todos. */
+function jornadasDelPeriodo(empId){
+  const ym = document.getElementById('nomina-mes').value, q = document.getElementById('nomina-periodo').value;
+  const lista = [];
+  state.eventos.filter(e=> enPeriodo(e.fecha, ym, q) && e.estado!=='Cancelado').sort((a,b)=>a.fecha.localeCompare(b.fecha))
+    .forEach(e=>(e.colaboradores||[]).forEach(c=>{ if(!empId || c.empleadoId===empId) lista.push({evento:e, colab:c}); }));
+  return {ym, q, lista};
+}
+
+/* Marca como pagadas todas las jornadas pendientes de un colaborador en el periodo. */
+function marcarPeriodoPagado(empId){
+  if(!esGerente()) return;
+  const {ym, q, lista} = jornadasDelPeriodo(empId);
+  const pendientes = lista.filter(j=>j.colab.estadoPago!=='Pagado');
+  if(!pendientes.length){ toast('No hay jornadas pendientes en este periodo.'); return; }
+  const total = pendientes.reduce((s,j)=>s+calcularTotal(j.evento, j.colab), 0);
+  const emp = state.empleados.find(e=>e.id===empId);
+  if(!confirm('¿Marcar como pagadas '+pendientes.length+' jornada(s) de '+(emp?emp.nombre:empId)+' por '+fmtCOP(total)+'?\n\n'+textoPeriodo(ym, q)+'\nLas horas extra y el cumplimiento de horario quedan fijados con los valores de hoy.')) return;
+  Data.marcarPagados(pendientes.map(j=>({eventoId:j.evento.id, empleadoId:empId, patch:parchePagado(j.evento, j.colab)})))
+    .then(()=>toast(pendientes.length+' jornada(s) marcadas como pagadas.')).catch(()=>{});
+}
+
+function imprimirNomina(){ window.print(); }

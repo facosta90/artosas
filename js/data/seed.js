@@ -76,5 +76,5 @@ const SEED = {
     {id:'di4', canal:'Soporte del aplicativo', responsable:'Arturo (consultor)', tipo:'Correo', contacto:'arturo.espi112@gmail.com'},
     {id:'di5', canal:'Emergencias en evento', responsable:'Línea de guardia', tipo:'Llamada', contacto:'300 000 0001'},
   ],
-  config: {valorHoraExtra:8000, bonoEncargado:15000, bonoFestivo:20000},
+  config: {valorHoraExtra:8000, bonoEncargado:15000, bonoFestivo:20000, autoHorario:true, toleranciaMin:10, extraBloqueMin:60},
 };
