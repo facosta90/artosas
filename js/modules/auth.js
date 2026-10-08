@@ -17,6 +17,7 @@ async function sha256Hex(texto){
 function mostrarRegistro(ev){
   if(ev) ev.preventDefault();
   document.getElementById('mj-login-form').hidden = true;
+  document.getElementById('mj-recupera-form').hidden = true;
   document.getElementById('mj-registro-form').hidden = false;
   document.getElementById('mj-auth-title').textContent = 'Crear mi cuenta';
   document.getElementById('mj-auth-sub').textContent = 'Regístrate una sola vez para poder marcar tu ingreso y tu salida.';
@@ -24,6 +25,7 @@ function mostrarRegistro(ev){
 function mostrarLogin(ev){
   if(ev) ev.preventDefault();
   document.getElementById('mj-registro-form').hidden = true;
+  document.getElementById('mj-recupera-form').hidden = true;
   document.getElementById('mj-login-form').hidden = false;
   document.getElementById('mj-auth-title').textContent = 'Iniciar sesión';
   document.getElementById('mj-auth-sub').textContent = 'Ingresa tu cédula y tu contraseña para entrar al aplicativo.';
@@ -55,9 +57,11 @@ async function registrarme(){
   const nombre = document.getElementById('mj-reg-nombre').value.trim();
   const cedula = document.getElementById('mj-reg-cedula').value.trim();
   const telefono = document.getElementById('mj-reg-telefono').value.trim();
+  const correo = document.getElementById('mj-reg-correo').value.trim().toLowerCase();
   const pass = document.getElementById('mj-reg-pass').value;
   const pass2 = document.getElementById('mj-reg-pass2').value;
   if(!nombre || !cedula){ toast('Escribe tu nombre y tu cédula.'); return; }
+  if(correo && !correoValido(correo)){ toast('Revisa el correo: no parece válido.'); return; }
   if(pass.length<6){ toast('La contraseña debe tener al menos 6 caracteres.'); return; }
   if(pass!==pass2){ toast('Las contraseñas no coinciden.'); return; }
 
@@ -73,6 +77,7 @@ async function registrarme(){
     document.getElementById('mj-reg-pass2').value = '';
     // La ficha del colaborador la crea el gerente; aquí solo se guarda el teléfono para completarla al entrar.
     if(telefono) safeSetLocal('arto_tel_pend', telefono);
+    if(correo) safeSetLocal('arto_correo_pend', correo);
 
     if(!data.session){
       toast('Cuenta creada. Si tu proyecto pide confirmar el correo, pídele al administrador que desactive "Confirm email" en Supabase — mientras tanto, intenta iniciar sesión.');
@@ -89,11 +94,12 @@ async function registrarme(){
     if(existente){
       const patch = { passHash, tieneCuenta:true };
       if(telefono) patch.telefono = telefono;
+      if(correo) patch.correo = correo;
       if(nombre) patch.nombre = nombre;
       await Data.updateEmpleado(cedula, patch);
     }else{
       await Data.addEmpleado({
-        id: cedula, nombre, telefono, correo:'', cuentaPago:'Nequi', numeroCuenta:'', eps:'', talla:'M',
+        id: cedula, nombre, telefono, correo, cuentaPago:'Nequi', numeroCuenta:'', eps:'', talla:'M',
         encargado:false, docs:{cedula:false,contrato:false,eps:false}, passHash, tieneCuenta:true,
       });
     }
@@ -146,8 +152,18 @@ function confirmarReinicioClave(cedula){
 }
 
 function abrirCambioClave(){
-  abrirModal('Cambiar mi contraseña',
-    '<form onsubmit="guardarMiClave(event)">'
+  const yo = state.empleados.find(x=>x.id===state.miId);
+  const bloqueCorreo = yo
+    ? '<form onsubmit="guardarMiCorreo(event)" class="bloque-correo">'
+      + '<div class="field"><label>Mi correo para recuperar la contraseña</label>'
+      + '<div style="display:flex; gap:.4rem;"><input type="email" id="mc-correo" value="'+esc(yo.correo||'')+'" placeholder="tucorreo@ejemplo.com" autocomplete="email" required>'
+      + '<button type="submit" class="btn">Guardar</button></div></div>'
+      + '<p class="nota-modal">'+(yo.correo ? 'Si olvidas la contraseña, a este correo te llega el código para crear una nueva.' : '<b style="color:var(--danger);">Aún no tienes correo registrado.</b> Sin correo no puedes recuperar la contraseña por tu cuenta.')+'</p>'
+      + '</form>'
+    : '';
+  abrirModal('Mi contraseña',
+    bloqueCorreo
+    + '<form onsubmit="guardarMiClave(event)">'
     + '<div class="field"><label>Nueva contraseña (mínimo 6 caracteres)</label><input type="password" id="mc-clave" autocomplete="new-password" required></div>'
     + '<div class="field"><label>Confirmar nueva contraseña</label><input type="password" id="mc-clave2" autocomplete="new-password" required></div>'
     + '<div class="modal-acciones"><span class="espacio"></span>'
@@ -161,4 +177,74 @@ function guardarMiClave(ev){
   if(c1.length<6){ toast('La contraseña debe tener al menos 6 caracteres.'); return; }
   if(c1!==c2){ toast('Las contraseñas no coinciden.'); return; }
   Data.cambiarMiClave(c1).then(()=>{ cerrarModal(); toast('Contraseña actualizada.'); }).catch(()=>{});
+}
+
+function correoValido(c){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(c||'').trim()); }
+
+function guardarMiCorreo(ev){
+  ev.preventDefault();
+  const correo = document.getElementById('mc-correo').value.trim().toLowerCase();
+  if(!correoValido(correo)){ toast('Revisa el correo: no parece válido.'); return; }
+  Data.guardarMiCorreo(correo).then(()=>{ toast('Correo de recuperación guardado.'); if(modalAbierto()) abrirCambioClave(); }).catch(()=>{});
+}
+
+/* ============================================================
+   Recuperar la contraseña por correo (pantalla de ingreso)
+   Paso 1: cédula → llega un código de 6 dígitos al correo de la ficha.
+   Paso 2: código + contraseña nueva → entra al aplicativo.
+   ============================================================ */
+let recCedula = '';
+
+function mostrarRecuperar(ev){
+  if(ev) ev.preventDefault();
+  document.getElementById('mj-login-form').hidden = true;
+  document.getElementById('mj-registro-form').hidden = true;
+  document.getElementById('mj-recupera-form').hidden = false;
+  document.getElementById('mj-rec-paso1').hidden = false;
+  document.getElementById('mj-rec-paso2').hidden = true;
+  document.getElementById('mj-auth-title').textContent = 'Recuperar contraseña';
+  document.getElementById('mj-auth-sub').textContent = 'Escribe tu cédula y te enviamos un código al correo que tienes registrado.';
+  const ced = document.getElementById('mj-login-cedula').value.trim();
+  if(ced) document.getElementById('mj-rec-cedula').value = ced;
+  ['mj-rec-codigo','mj-rec-pass','mj-rec-pass2'].forEach(id=>{ document.getElementById(id).value = ''; });
+}
+function volverAPedirCodigo(ev){
+  if(ev) ev.preventDefault();
+  mostrarRecuperar();
+  document.getElementById('mj-rec-cedula').value = recCedula;
+}
+
+async function pedirCodigoClave(){
+  const cedula = document.getElementById('mj-rec-cedula').value.replace(/\s/g,'');
+  if(!cedula){ toast('Escribe tu cédula.'); return; }
+  const btn = document.getElementById('mj-rec-enviar');
+  btn.disabled = true;
+  try{
+    await Data.solicitarCodigoClave(cedula);
+  }catch(e){ btn.disabled = false; return; }
+  btn.disabled = false;
+  recCedula = cedula;
+  document.getElementById('mj-rec-paso1').hidden = true;
+  document.getElementById('mj-rec-paso2').hidden = false;
+  document.getElementById('mj-auth-title').textContent = 'Revisa tu correo';
+  document.getElementById('mj-auth-sub').textContent = 'Si esa cédula tiene un correo registrado, acabamos de enviarle un código de 6 dígitos (vale 15 minutos). Revisa también la carpeta de spam. Si no tienes correo registrado, pídele a la oficina que te reinicie la contraseña.';
+  document.getElementById('mj-rec-codigo').focus();
+}
+
+async function cambiarClaveConCodigo(){
+  const codigo = document.getElementById('mj-rec-codigo').value.replace(/\D/g,'');
+  const pass = document.getElementById('mj-rec-pass').value, pass2 = document.getElementById('mj-rec-pass2').value;
+  if(codigo.length!==6){ toast('El código tiene 6 dígitos.'); return; }
+  if(pass.length<6){ toast('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if(pass!==pass2){ toast('Las contraseñas no coinciden.'); return; }
+  let ok = false;
+  try{ ok = await Data.cambiarClaveConCodigo(recCedula, codigo, pass); }catch(e){ return; }
+  if(!ok){ toast('El código no es correcto o ya venció. Revísalo o pide uno nuevo.'); return; }
+  ['mj-rec-codigo','mj-rec-pass','mj-rec-pass2'].forEach(id=>{ document.getElementById(id).value = ''; });
+  toast('Contraseña cambiada.');
+  // entra de una vez con la contraseña nueva
+  mostrarLogin();
+  document.getElementById('mj-login-cedula').value = recCedula;
+  document.getElementById('mj-login-pass').value = pass;
+  await iniciarSesion();
 }

@@ -22,17 +22,34 @@
       <div class="field"><label>Contraseña</label><input type="password" id="mj-login-pass" onkeydown="if(event.key==='Enter') iniciarSesion()"></div>
       <button class="btn primary" style="width:100%; justify-content:center;" onclick="iniciarSesion()">Ingresar</button>
       <p class="mj-switch">¿Primera vez aquí? <a href="#" onclick="mostrarRegistro(event)">Regístrate</a></p>
-      <p class="mj-switch" style="margin-top:.4rem !important; color:var(--ink-soft);">¿Olvidaste tu contraseña? Pídele a la oficina que te la reinicie.</p>
+      <p class="mj-switch" style="margin-top:.4rem !important;"><a href="#" onclick="mostrarRecuperar(event)">¿Olvidaste tu contraseña?</a></p>
     </div>
 
     <div id="mj-registro-form" hidden>
       <div class="field"><label>Nombre completo</label><input type="text" id="mj-reg-nombre"></div>
       <div class="field"><label>Cédula</label><input type="text" id="mj-reg-cedula" inputmode="numeric" placeholder="Tu número de documento"></div>
       <div class="field"><label>Teléfono (WhatsApp)</label><input type="text" id="mj-reg-telefono" placeholder="3001234567"></div>
+      <div class="field"><label>Correo (para recuperar tu contraseña)</label><input type="email" id="mj-reg-correo" placeholder="tucorreo@ejemplo.com" autocomplete="email"></div>
       <div class="field"><label>Contraseña</label><input type="password" id="mj-reg-pass"></div>
       <div class="field"><label>Confirmar contraseña</label><input type="password" id="mj-reg-pass2" onkeydown="if(event.key==='Enter') registrarme()"></div>
       <button class="btn primary" style="width:100%; justify-content:center;" onclick="registrarme()">Crear mi cuenta</button>
       <p class="mj-switch">¿Ya tienes cuenta? <a href="#" onclick="mostrarLogin(event)">Inicia sesión</a></p>
+    </div>
+
+    <!-- recuperar contraseña: paso 1 pide el código, paso 2 crea la contraseña nueva -->
+    <div id="mj-recupera-form" hidden>
+      <div id="mj-rec-paso1">
+        <div class="field"><label>Cédula</label><input type="text" id="mj-rec-cedula" inputmode="numeric" placeholder="Tu número de documento" onkeydown="if(event.key==='Enter') pedirCodigoClave()"></div>
+        <button class="btn primary" id="mj-rec-enviar" style="width:100%; justify-content:center;" onclick="pedirCodigoClave()">Enviarme el código</button>
+      </div>
+      <div id="mj-rec-paso2" hidden>
+        <div class="field"><label>Código de 6 dígitos</label><input type="text" id="mj-rec-codigo" class="mono" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div>
+        <div class="field"><label>Nueva contraseña</label><input type="password" id="mj-rec-pass" autocomplete="new-password"></div>
+        <div class="field"><label>Confirmar nueva contraseña</label><input type="password" id="mj-rec-pass2" autocomplete="new-password" onkeydown="if(event.key==='Enter') cambiarClaveConCodigo()"></div>
+        <button class="btn primary" style="width:100%; justify-content:center;" onclick="cambiarClaveConCodigo()">Cambiar contraseña y entrar</button>
+        <p class="mj-switch"><a href="#" onclick="volverAPedirCodigo(event)">No me llegó: pedir otro código</a></p>
+      </div>
+      <p class="mj-switch"><a href="#" onclick="mostrarLogin(event)">← Volver a iniciar sesión</a></p>
     </div>
 
     <p class="mj-auth-note">Tu cuenta y tu contraseña quedan protegidas por el sistema de autenticación de Supabase (la oficina no puede ver tu contraseña). Aun así, evita reutilizar una contraseña que ya uses en otra cuenta importante.</p>
@@ -205,7 +222,7 @@
             <div class="field"><label>Talla de uniforme</label>
               <select id="em-talla"><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option></select>
             </div>
-            <div class="field"><label>Correo</label><input type="email" id="em-correo"></div>
+            <div class="field"><label>Correo (recuperar contraseña)</label><input type="email" id="em-correo" placeholder="correo@ejemplo.com"></div>
             <div class="check-row" style="margin-top:1.5rem;"><input type="checkbox" id="em-encargado"><label style="margin:0; text-transform:none; font-family:inherit; font-size:.85rem;">Habilitado como encargado de evento</label></div>
           </div>
           <div class="field">
@@ -216,7 +233,7 @@
               <span class="check-row"><input type="checkbox" id="em-doc-eps"><label style="margin:0; text-transform:none; font-family:inherit;">Certificado EPS</label></span>
             </div>
           </div>
-          <p style="font-size:.78rem; color:var(--ink-soft); margin:-.2rem 0 1rem;">El colaborador crea su propia cuenta y contraseña con esta misma cédula ("Regístrate"). Si después la olvida, se la reinicias desde el botón "Contraseña" de la lista.</p>
+          <p style="font-size:.78rem; color:var(--ink-soft); margin:-.2rem 0 1rem;">El colaborador crea su propia cuenta y contraseña con esta misma cédula ("Regístrate"). Si después la olvida, la recupera con un código que le llega al correo de su ficha; si no tiene correo, se la reinicias desde el botón "Contraseña" de la lista.</p>
           <button type="submit" class="btn primary">Guardar colaborador</button>
         </form>
       </div>

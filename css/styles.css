@@ -374,3 +374,8 @@ table.data th.num, table.data td.num{ text-align:right; white-space:nowrap; }
   tr.fila-total td:empty{ display:none; }
   .recibo-cabecera{ align-items:flex-start; }
 }
+
+/* ---------- recuperar contraseña por correo ---------- */
+#mj-rec-codigo{ font-size:1.4rem; letter-spacing:.35em; text-align:center; }
+.bloque-correo{ padding-bottom:1rem; margin-bottom:1rem; border-bottom:1px solid var(--line); }
+.bloque-correo .field{ margin-bottom:.2rem; }

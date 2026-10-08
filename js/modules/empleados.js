@@ -53,7 +53,7 @@ function renderEmpleados(){
       + '<td>'+esc(e.cuentaPago)+' <span class="mono" style="color:var(--ink-soft);">'+esc(e.numeroCuenta||'')+'</span></td>'
       + '<td>'+(esc(e.eps)||'—')+'</td><td>'+esc(e.talla)+'</td>'
       + '<td>'+docsOk+'/3 <span style="color:var(--ink-soft);">docs</span></td>'
-      + '<td>'+acceso+'</td>'
+      + '<td>'+acceso+(e.correo ? '' : ' <span class="pill pend" title="Sin correo no puede recuperar la contraseña por su cuenta">sin correo</span>')+'</td>'
       + '<td><div class="acciones-fila">'
       + '<button class="btn small" onclick="abrirEditarEmpleado(\''+esc(e.id)+'\')">Editar</button>'
       + (e.tieneCuenta ? '<button class="btn small" onclick="abrirReinicioClave(\''+esc(e.id)+'\')">Contraseña</button>' : '')
@@ -88,7 +88,7 @@ function abrirEditarEmpleado(id){
     + '<div class="field"><label>EPS</label><input type="text" id="ee-eps" value="'+esc(e.eps)+'"></div>'
     + '</div><div class="grid-3">'
     + '<div class="field"><label>Talla de uniforme</label><select id="ee-talla">'+opcionesSelect(['XS','S','M','L','XL'], e.talla)+'</select></div>'
-    + '<div class="field"><label>Correo</label><input type="email" id="ee-correo" value="'+esc(e.correo)+'"></div>'
+    + '<div class="field"><label>Correo (recuperar contraseña)</label><input type="email" id="ee-correo" value="'+esc(e.correo)+'" placeholder="correo@ejemplo.com"></div>'
     + '<div class="field" style="align-self:end;">'+chk('ee-encargado', e.encargado, 'Habilitado como encargado')+'</div>'
     + '</div>'
     + '<div class="field"><label>Documentos adjuntos en archivo</label><div class="checks-fila">'
@@ -111,7 +111,7 @@ function guardarEmpleado(ev, id){
   const patch = {
     nombre,
     telefono: document.getElementById('ee-telefono').value.trim(),
-    correo: document.getElementById('ee-correo').value.trim(),
+    correo: document.getElementById('ee-correo').value.trim().toLowerCase(),
     cuentaPago: document.getElementById('ee-cuentaPago').value,
     numeroCuenta: document.getElementById('ee-numeroCuenta').value.trim(),
     eps: document.getElementById('ee-eps').value.trim(),

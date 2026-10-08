@@ -3,6 +3,9 @@
    ============================================================ */
 
 /* ---------------- data layer (Supabase o local) ---------------- */
+let demoCodigo = null;   // solo modo demostración
+function faltaSqlCorreo(error){ return /PGRST202|schema cache|Could not find the function/i.test((error.code||'')+' '+(error.message||'')); }
+
 const Data = {
   async addEvento(obj){
     if(sb){
@@ -74,6 +77,42 @@ const Data = {
     }else{
       const e = state.empleados.find(x=>x.id===state.miId);
       if(e) e.passHash = await sha256Hex(clave);
+    }
+  },
+  /* --- recuperación por correo (sin sesión) --- */
+  async solicitarCodigoClave(cedula){
+    if(sb){
+      const {error} = await sb.rpc('solicitar_codigo_clave', { p_cedula: String(cedula) });
+      if(error){ toast(faltaSqlCorreo(error) ? '⚠ Falta ejecutar en Supabase el archivo 04_recuperar_por_correo.sql.' : '❌ '+error.message); throw error; }
+    }else{
+      // modo demostración: no hay correo, el código se muestra en pantalla
+      const e = state.empleados.find(x=>x.id===cedula);
+      if(e && e.tieneCuenta && e.correo){
+        demoCodigo = { cedula, codigo: String(Math.floor(100000+Math.random()*900000)) };
+        setTimeout(()=>toast('DEMO — en producción llega por correo. Código: '+demoCodigo.codigo), 300);
+      }else{ demoCodigo = null; }
+    }
+  },
+  async cambiarClaveConCodigo(cedula, codigo, clave){
+    if(sb){
+      const {data, error} = await sb.rpc('cambiar_clave_con_codigo', { p_cedula: String(cedula), p_codigo: codigo, p_clave: clave });
+      if(error){ toast(faltaSqlCorreo(error) ? '⚠ Falta ejecutar en Supabase el archivo 04_recuperar_por_correo.sql.' : '❌ '+error.message); throw error; }
+      return data === true;
+    }
+    if(!demoCodigo || demoCodigo.cedula!==cedula || demoCodigo.codigo!==codigo) return false;
+    const e = state.empleados.find(x=>x.id===cedula);
+    e.passHash = await sha256Hex(clave); demoCodigo = null;
+    return true;
+  },
+  async guardarMiCorreo(correo){
+    if(sb){
+      const {error} = await sb.rpc('guardar_mi_correo', { p_correo: correo });
+      if(error){ toast(faltaSqlCorreo(error) ? '⚠ Falta ejecutar en Supabase el archivo 04_recuperar_por_correo.sql.' : '❌ '+error.message); throw error; }
+      await refetchEmpleados();
+      renderActiveTab();
+    }else{
+      const e = state.empleados.find(x=>x.id===state.miId); if(e) e.correo = correo;
+      renderActiveTab();
     }
   },
   async addGasto(obj){

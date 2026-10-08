@@ -53,6 +53,12 @@ async function entrarAlAplicativo(user, opciones){
     const telPend = opciones.telefono || safeGetLocal('arto_tel_pend') || '';
     const reg = await sb.rpc('registrar_mi_cuenta', { p_telefono: telPend });
     if(!reg.error) safeRemoveLocal('arto_tel_pend');
+    // correo dado al registrarse: se guarda en la ficha (si la cédula ya está en la lista de colaboradores)
+    const correoPend = safeGetLocal('arto_correo_pend');
+    if(correoPend){
+      const rc = await sb.rpc('guardar_mi_correo', { p_correo: correoPend });
+      if(!rc.error && rc.data === true) safeRemoveLocal('arto_correo_pend');
+    }
     try{
       await cargarTodoSupabase();
       document.getElementById('modo-datos').textContent = 'Datos en vivo — compartidos para todo el equipo';
