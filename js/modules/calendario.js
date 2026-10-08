@@ -25,10 +25,11 @@ function renderCalendario(){
     let evsHtml = evs.slice(0,3).map(e=>{
       const cls = e.estado==='Cancelado' ? 'canc' : (e.estado==='Realizado' ? 'ok' : 'pend');
       const label = e.empresa.length>16 ? e.empresa.slice(0,15)+'…' : e.empresa;
-      return '<div class="cal-ev '+cls+'" onclick="irAFecha(\''+dateStr+'\')">'+label+'</div>';
+      return '<div class="cal-ev '+cls+'">'+label+'</div>';
     }).join('');
     if(evs.length>3) evsHtml += '<div class="cal-more">+'+(evs.length-3)+' más</div>';
-    html += '<div class="cal-cell'+(isToday?' today':'')+'"><div class="dnum">'+d+'</div>'+evsHtml+'</div>';
+    // toda la casilla del día es tocable (más cómodo en celular)
+    html += '<div class="cal-cell'+(isToday?' today':'')+(evs.length?' con-ev" onclick="irAFecha(\''+dateStr+'\')':'')+'"><div class="dnum">'+d+'</div>'+evsHtml+'</div>';
   }
   document.getElementById('cal-grid').innerHTML = html;
 }

@@ -169,4 +169,5 @@ function previsualizarTarifa(){
 }
 
 
+vigilarTablas();
 init();

@@ -50,25 +50,25 @@
         <span class="disp">Arto Operaciones</span>
         <span class="tag">Prototipo funcional</span>
       </div>
-      <div style="display:flex; align-items:center; gap:1.4rem;">
+      <div class="appbar-right">
         <div class="stat-mini-row">
           <div class="stat-mini"><b id="mini-mes">0</b>eventos este mes</div>
           <div class="stat-mini" data-rol="gerente"><b id="mini-pend">0</b>pagos pendientes</div>
           <div class="stat-mini" data-rol="gerente"><b id="mini-gastos">0</b>gastos por reembolsar</div>
         </div>
         <button class="gear-btn" id="btn-settings" data-rol="gerente" onclick="toggleSettings()">⚙ Ajustes</button>
-        <div class="sesion-box"><span id="sesion-nombre"></span><span class="tag" id="sesion-rol"></span>
-          <button class="gear-btn" onclick="cerrarSesion()">Cerrar sesión</button></div>
+        <div class="sesion-box"><span class="sesion-quien"><span id="sesion-nombre"></span><span class="tag" id="sesion-rol"></span></span>
+          <button class="gear-btn btn-salir" onclick="cerrarSesion()">Cerrar sesión</button></div>
       </div>
     </div>
     <nav class="tabs">
-      <button class="tab-btn" data-tab="mijornada" onclick="switchTab('mijornada')">👤 Mi Jornada</button>
-      <button class="tab-btn active" data-tab="calendario" onclick="switchTab('calendario')">📅 Calendario</button>
-      <button class="tab-btn" data-tab="eventos" onclick="switchTab('eventos')">🗂 Eventos</button>
-      <button class="tab-btn" data-rol="gerente" data-tab="empleados" onclick="switchTab('empleados')">👥 Empleados</button>
-      <button class="tab-btn" data-rol="gerente" data-tab="nomina" onclick="switchTab('nomina')">💵 Nómina</button>
-      <button class="tab-btn" data-rol="gerente" data-tab="gastos" onclick="switchTab('gastos')">🧾 Gastos</button>
-      <button class="tab-btn" data-rol="gerente" data-tab="directorio" onclick="switchTab('directorio')">📇 Directorio</button>
+      <button class="tab-btn" data-tab="mijornada" onclick="switchTab('mijornada')"><span class="ico">👤</span><span class="lbl">Mi Jornada</span></button>
+      <button class="tab-btn active" data-tab="calendario" onclick="switchTab('calendario')"><span class="ico">📅</span><span class="lbl">Calendario</span></button>
+      <button class="tab-btn" data-tab="eventos" onclick="switchTab('eventos')"><span class="ico">🗂</span><span class="lbl">Eventos</span></button>
+      <button class="tab-btn" data-rol="gerente" data-tab="empleados" onclick="switchTab('empleados')"><span class="ico">👥</span><span class="lbl">Empleados</span></button>
+      <button class="tab-btn" data-rol="gerente" data-tab="nomina" onclick="switchTab('nomina')"><span class="ico">💵</span><span class="lbl">Nómina</span></button>
+      <button class="tab-btn" data-rol="gerente" data-tab="gastos" onclick="switchTab('gastos')"><span class="ico">🧾</span><span class="lbl">Gastos</span></button>
+      <button class="tab-btn" data-rol="gerente" data-tab="directorio" onclick="switchTab('directorio')"><span class="ico">📇</span><span class="lbl">Directorio</span></button>
     </nav>
   </header>
 
@@ -126,8 +126,8 @@
         <p class="sub" data-rol="gerente">Alta, edición y cancelación de eventos. Cancelar cambia el estado — el registro nunca se borra.</p>
         <p class="sub" data-rol="empleado">Programación del equipo, solo para consulta. Tus registros de llegada y salida se hacen en Mi Jornada.</p>
 
-        <div class="card" data-rol="gerente" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
-          <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;">+ Nueva programación</h3>
+        <div class="card form-card" data-rol="gerente" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
+          <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;" onclick="this.parentElement.classList.toggle('abierto')">+ Nueva programación</h3>
           <form id="form-evento" onsubmit="crearEvento(event)">
             <div class="grid-3">
               <div class="field"><label>Fecha</label><input type="date" id="nv-fecha" required></div>
@@ -177,8 +177,8 @@
       <h2>Base de datos de empleados</h2>
       <p class="sub">Datos personales, medio de pago, EPS y control de documentos adjuntos.</p>
 
-      <div class="card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
-        <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;">+ Nuevo colaborador</h3>
+      <div class="card form-card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
+        <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;" onclick="this.parentElement.classList.toggle('abierto')">+ Nuevo colaborador</h3>
         <form id="form-empleado" onsubmit="crearEmpleado(event)">
           <div class="grid-3">
             <div class="field"><label>Cédula</label><input type="text" id="em-cedula" required></div>
@@ -231,8 +231,8 @@
       <h2>Compras y gastos de campo</h2>
       <p class="sub">Registro de lo que el equipo compra para los talleres, con comprobante y estado de reembolso.</p>
 
-      <div class="card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
-        <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;">+ Registrar compra</h3>
+      <div class="card form-card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
+        <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;" onclick="this.parentElement.classList.toggle('abierto')">+ Registrar compra</h3>
         <form id="form-gasto" onsubmit="crearGasto(event)">
           <div class="grid-3">
             <div class="field"><label>Fecha</label><input type="date" id="ga-fecha" required></div>
@@ -254,8 +254,8 @@
       <h2>Directorio de la oficina</h2>
       <p class="sub">Canales principales de comunicación con la oficina.</p>
 
-      <div class="card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
-        <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;">+ Nuevo contacto</h3>
+      <div class="card form-card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
+        <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;" onclick="this.parentElement.classList.toggle('abierto')">+ Nuevo contacto</h3>
         <form id="form-directorio" onsubmit="crearDirectorio(event)">
           <div class="grid-2">
             <div class="field"><label>Área / motivo</label><input type="text" id="di-canal" placeholder="Ej. Nómina y pagos" required></div>

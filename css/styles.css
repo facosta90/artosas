@@ -211,3 +211,120 @@ footer{ max-width:1180px; margin:2rem auto 0; padding:1.2rem clamp(14px,3vw,32px
 .login-estado{ text-align:center; font-family:'IBM Plex Mono',monospace; font-size:.7rem; color:var(--ink-soft); margin:0; }
 .sesion-box{ display:flex; align-items:center; gap:.6rem; font-size:.82rem; flex-wrap:wrap; }
 .sesion-box .tag{ font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:var(--accent-ink); background:var(--accent-soft); padding:.15rem .5rem; border-radius:3px; text-transform:uppercase; letter-spacing:.08em; }
+
+/* ============================================================
+   RESPONSIVE
+   Escritorio: igual que antes.
+   Tableta (hasta 1000px): encabezado más compacto.
+   Celular (hasta 700px): encabezado corto, pestañas como barra
+   inferior, tablas como tarjetas y controles cómodos para el dedo.
+   ============================================================ */
+.appbar-right{ display:flex; align-items:center; gap:1.4rem; flex-wrap:wrap; }
+.sesion-quien{ display:inline-flex; align-items:center; gap:.5rem; min-width:0; }
+#sesion-nombre{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:22ch; }
+nav.tabs button .ico{ margin-right:.35em; }
+nav.tabs{ scrollbar-width:none; }
+nav.tabs::-webkit-scrollbar{ display:none; }
+.cal-cell.con-ev{ cursor:pointer; }
+.cal-ev{ overflow:hidden; text-overflow:ellipsis; }
+.form-card > h3{ cursor:default; }
+.tbl-wrap{ -webkit-overflow-scrolling:touch; }
+
+@media (max-width:1000px){
+  header.appbar{ position:static; }
+  .appbar-top{ align-items:center; }
+  .appbar-right{ gap:.9rem; }
+  .stat-mini-row{ gap:1rem; }
+}
+
+@media (max-width:700px){
+  html{ -webkit-text-size-adjust:100%; }
+  .shell{ padding-bottom:5.6rem; }
+
+  /* --- encabezado: corto y no fijo --- */
+  header.appbar{ position:static; padding:.7rem 0 0; }
+  .appbar-top{ display:grid; grid-template-columns:1fr auto; grid-template-areas:"marca salir" "quien ajustes" "cifras cifras"; gap:.45rem .8rem; align-items:center; padding-bottom:.7rem; }
+  .appbar-right, .sesion-box{ display:contents; }
+  .brand{ grid-area:marca; min-width:0; }
+  .brand .disp{ font-size:1.15rem; white-space:nowrap; }
+  .brand .tag{ display:none; }
+  .btn-salir{ grid-area:salir; }
+  .sesion-quien{ grid-area:quien; font-size:.82rem; }
+  #sesion-nombre{ max-width:none; }
+  #btn-settings{ grid-area:ajustes; justify-self:end; }
+  .stat-mini-row{ grid-area:cifras; display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:.5rem; font-size:.64rem; line-height:1.3; }
+  .stat-mini{ background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:.4rem .5rem; }
+  .stat-mini b{ font-size:1rem; }
+
+  /* --- pestañas: barra inferior siempre visible --- */
+  nav.tabs{ position:fixed; left:0; right:0; bottom:0; z-index:25; gap:0; background:var(--surface); border-top:1px solid var(--line);
+    box-shadow:0 -4px 16px -8px rgba(0,0,0,.25); padding:0 4px env(safe-area-inset-bottom,0px); }
+  nav.tabs button{ flex:1 0 auto; min-width:50px; display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:.5rem .15rem .45rem; font-size:.6rem; font-weight:600; border-bottom:none; border-top:2.5px solid transparent; }
+  nav.tabs button .ico{ margin:0; font-size:1.2rem; line-height:1; }
+  nav.tabs button.active{ border-top-color:var(--accent); border-bottom-color:transparent; }
+  #toast{ bottom:5rem; width:max-content; max-width:calc(100vw - 28px); text-align:center; }
+
+  main{ padding-top:1.1rem; }
+  .panel h2{ font-size:1.15rem; }
+
+  /* --- controles cómodos para el dedo (16px evita el zoom automático del iPhone) --- */
+  input, select, textarea{ font-size:16px; padding:.6rem .65rem; }
+  input[type="checkbox"]{ width:1.15rem; height:1.15rem; flex:none; }
+  .btn{ min-height:42px; }
+  .btn.small{ min-height:38px; padding:.4rem .75rem; font-size:.78rem; }
+  .gear-btn{ min-height:38px; }
+  form .btn.primary[type="submit"]{ width:100%; justify-content:center; }
+  .toolbar > select, .toolbar > input{ width:100% !important; min-width:0 !important; }
+  .settings-pop{ top:auto; bottom:5rem; right:14px; left:14px; width:auto; }
+  .card[style*="padding:1.2rem 1.3rem"], .detail-head, .colab-card, .ev-card{ padding:.9rem .9rem !important; }
+
+  /* --- formularios de alta: plegados, se abren al tocar el título --- */
+  .form-card > h3{ cursor:pointer; margin:0 !important; display:flex; justify-content:space-between; align-items:center; }
+  .form-card > h3::after{ content:"▾"; font-size:1rem; color:var(--ink-soft); }
+  .form-card.abierto > h3{ margin-bottom:.9rem !important; }
+  .form-card.abierto > h3::after{ content:"▴"; }
+  .form-card:not(.abierto) > form{ display:none; }
+
+  /* --- calendario --- */
+  .cal-head{ gap:.4rem; }
+  .cal-head .disp{ font-size:1.05rem; text-align:center; }
+  .cal-head .btn{ white-space:nowrap; }
+  .cal-cell{ min-height:58px; padding:.2rem; gap:.15rem; min-width:0; }
+  .cal-ev{ font-size:.55rem; padding:.1rem .15rem; white-space:nowrap; }
+  .cal-more{ font-size:.55rem; }
+
+  /* --- eventos y detalle --- */
+  .ev-card-top > div:last-child{ width:100%; justify-content:space-between; }
+  .colab-head > div{ width:100%; flex-wrap:wrap; }
+  .colab-grid{ grid-template-columns:1fr 1fr !important; }
+  .add-momento-row .btn, .field .btn{ flex:none; }
+  .mj-times{ flex-wrap:wrap; gap:.4rem 1.2rem; }
+  .nomina-total-box{ gap:.6rem; }
+  .nomina-total-box .stat{ flex:1 1 140px; }
+
+  /* --- tablas como tarjetas (sin deslizar de lado) --- */
+  .tbl-wrap{ overflow-x:visible; }
+  table.data thead{ display:none; }
+  table.data, table.data tbody, table.data tr, table.data td{ display:block; width:100%; }
+  table.data tr{ padding:.75rem .9rem; border-bottom:1px solid var(--line); }
+  table.data tr:last-child{ border-bottom:none; }
+  table.data td{ border:none; padding:.22rem 0; display:flex; justify-content:space-between; align-items:baseline; gap:1rem; text-align:right !important; overflow-wrap:anywhere; }
+  table.data td::before{ content:attr(data-label); flex:none; max-width:45%; text-align:left; font-family:'IBM Plex Mono',monospace; font-size:.62rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); }
+  table.data td:first-child{ justify-content:flex-start; text-align:left !important; font-weight:700; font-size:.95rem; padding-bottom:.35rem; }
+  table.data td:first-child::before{ content:none; }
+  table.data td[data-label=""]{ justify-content:flex-end; }
+  table.data td[data-label=""]::before{ content:none; }
+  table.data td[colspan]{ display:block; text-align:center !important; font-weight:400; font-size:.85rem; }
+
+  /* --- inicio de sesión --- */
+  #login-screen{ min-height:100dvh; padding:1.2rem 14px; }
+  .id-card{ padding:1.3rem 1.1rem 1.4rem; }
+  footer{ flex-direction:column; }
+}
+
+@media (max-width:380px){
+  nav.tabs button{ min-width:46px; font-size:.56rem; }
+  .stat-mini-row{ font-size:.6rem; }
+}
+@media (max-width:340px){ .colab-grid{ grid-template-columns:1fr !important; } .brand .disp{ font-size:1rem; } }
