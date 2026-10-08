@@ -201,3 +201,13 @@ footer{ max-width:1180px; margin:2rem auto 0; padding:1.2rem clamp(14px,3vw,32px
 .mj-recap{ display:flex; gap:1.2rem; flex-wrap:wrap; }
 
 @media (max-width:400px){ .grid-2,.grid-3,.colab-grid{ grid-template-columns:1fr; } }
+
+/* ---------- inicio de sesión y roles ---------- */
+[hidden]{ display:none !important; }
+#login-screen{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; gap:1rem; padding:2rem clamp(14px,3vw,32px); }
+#login-screen .id-card{ width:100%; }
+.login-brand{ text-align:center; font-size:1.5rem; margin-bottom:.4rem; }
+.demo-box{ border-top-color:var(--line); padding:1.1rem 1.6rem; }
+.login-estado{ text-align:center; font-family:'IBM Plex Mono',monospace; font-size:.7rem; color:var(--ink-soft); margin:0; }
+.sesion-box{ display:flex; align-items:center; gap:.6rem; font-size:.82rem; flex-wrap:wrap; }
+.sesion-box .tag{ font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:var(--accent-ink); background:var(--accent-soft); padding:.15rem .5rem; border-radius:3px; text-transform:uppercase; letter-spacing:.08em; }

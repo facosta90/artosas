@@ -26,7 +26,7 @@ function mostrarLogin(ev){
   document.getElementById('mj-registro-form').hidden = true;
   document.getElementById('mj-login-form').hidden = false;
   document.getElementById('mj-auth-title').textContent = 'Iniciar sesión';
-  document.getElementById('mj-auth-sub').textContent = 'Ingresa tu cédula y tu contraseña para ver tus eventos.';
+  document.getElementById('mj-auth-sub').textContent = 'Ingresa tu cédula y tu contraseña para entrar al aplicativo.';
 }
 
 async function iniciarSesion(){
@@ -36,21 +36,18 @@ async function iniciarSesion(){
 
   if(sb){
     const email = cedula + '@' + CONFIG.EMAIL_DOMAIN;
-    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-    if(error){ toast('Cédula o contraseña incorrecta.'); return; }
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if(error || !data.user){ toast('Cédula o contraseña incorrecta.'); return; }
     document.getElementById('mj-login-pass').value = '';
-    await cargarTodoSupabase();
-    renderMiJornada();
+    await entrarAlAplicativo(data.user);
   }else{
     const emp = state.empleados.find(e=>e.id===cedula);
     if(!emp){ toast('No encontramos esa cédula. ¿Ya te registraste?'); return; }
     if(!emp.passHash){ toast('Esa cuenta aún no tiene contraseña creada — usa "Regístrate" para crearla.'); return; }
     const hash = await sha256Hex(pass);
     if(hash !== emp.passHash){ toast('Contraseña incorrecta.'); return; }
-    state.miId = emp.id;
-    safeSetLocal('arto_mi_id', emp.id);
     document.getElementById('mj-login-pass').value = '';
-    renderMiJornada();
+    entrarLocalEmpleado(emp.id);
   }
 }
 
@@ -61,40 +58,29 @@ async function registrarme(){
   const pass = document.getElementById('mj-reg-pass').value;
   const pass2 = document.getElementById('mj-reg-pass2').value;
   if(!nombre || !cedula){ toast('Escribe tu nombre y tu cédula.'); return; }
-  if(pass.length<4){ toast('La contraseña debe tener al menos 4 caracteres.'); return; }
+  if(pass.length<6){ toast('La contraseña debe tener al menos 6 caracteres.'); return; }
   if(pass!==pass2){ toast('Las contraseñas no coinciden.'); return; }
 
   if(sb){
-    const existente = state.empleados.find(e=>e.id===cedula);
-    if(existente && existente.tieneCuenta){ toast('Esa cédula ya tiene una cuenta creada — inicia sesión.'); mostrarLogin(); return; }
-
     const email = cedula + '@' + CONFIG.EMAIL_DOMAIN;
     const { data, error } = await sb.auth.signUp({ email, password: pass, options:{ data:{ cedula, nombre } } });
-    if(error){ toast('❌ No se pudo crear la cuenta: '+error.message); return; }
-
-    if(existente){
-      const patch = { tieneCuenta:true };
-      if(telefono) patch.telefono = telefono;
-      if(nombre) patch.nombre = nombre;
-      await sb.from('empleados').update(toEmpleadoRow(patch)).eq('id', cedula);
-    }else{
-      await sb.from('empleados').insert(toEmpleadoRow({
-        id: cedula, nombre, telefono, correo:'', cuentaPago:'Nequi', numeroCuenta:'', eps:'', talla:'M',
-        encargado:false, docs:{cedula:false,contrato:false,eps:false}, tieneCuenta:true,
-      }));
+    if(error){
+      if(/already|registered|exist/i.test(error.message||'')){ toast('Esa cédula ya tiene una cuenta creada — inicia sesión.'); mostrarLogin(); }
+      else{ toast('❌ No se pudo crear la cuenta: '+error.message); }
+      return;
     }
     document.getElementById('mj-reg-pass').value = '';
     document.getElementById('mj-reg-pass2').value = '';
+    // La ficha del colaborador la crea el gerente; aquí solo se guarda el teléfono para completarla al entrar.
+    if(telefono) safeSetLocal('arto_tel_pend', telefono);
 
     if(!data.session){
       toast('Cuenta creada. Si tu proyecto pide confirmar el correo, pídele al administrador que desactive "Confirm email" en Supabase — mientras tanto, intenta iniciar sesión.');
-      await refetchEmpleados();
       mostrarLogin();
       return;
     }
-    await cargarTodoSupabase();
     toast('Cuenta creada. ¡Bienvenido/a, '+nombre+'!');
-    renderMiJornada();
+    await entrarAlAplicativo(data.user, { telefono });
   }else{
     const existente = state.empleados.find(e=>e.id===cedula);
     if(existente && existente.passHash){ toast('Esa cédula ya tiene una cuenta creada — inicia sesión.'); mostrarLogin(); return; }
@@ -111,21 +97,9 @@ async function registrarme(){
         encargado:false, docs:{cedula:false,contrato:false,eps:false}, passHash, tieneCuenta:true,
       });
     }
-    state.miId = cedula;
-    safeSetLocal('arto_mi_id', cedula);
     document.getElementById('mj-reg-pass').value = '';
     document.getElementById('mj-reg-pass2').value = '';
     toast('Cuenta creada. ¡Bienvenido/a, '+nombre+'!');
-    renderMiJornada();
+    entrarLocalEmpleado(cedula);
   }
-}
-
-async function cambiarUsuario(){
-  if(sb){ await sb.auth.signOut(); }
-  else{ safeRemoveLocal('arto_mi_id'); }
-  state.miId = null;
-  mostrarLogin();
-  const c = document.getElementById('mj-login-cedula'); if(c) c.value = '';
-  const p = document.getElementById('mj-login-pass'); if(p) p.value = '';
-  renderMiJornada();
 }

@@ -1,18 +1,36 @@
 /* ============================================================
    Recarga desde Supabase
+   El gerente lee las tablas completas. El empleado lee solo lo que
+   las reglas de la base le permiten: su propia ficha y la
+   programación (por la función "eventos_para_mi", que oculta los
+   pagos de los demás).
    ============================================================ */
 
-/* ---------------- refetch (Supabase no usa "onSnapshot"; recargamos y refrescamos) ---------------- */
-async function refetchEmpleados(){ const {data} = await sb.from('empleados').select('*'); state.empleados = (data||[]).map(fromEmpleadoRow); poblarSelectsEmpleados(); }
-async function refetchTipos(){ const {data} = await sb.from('tipos_evento').select('*'); state.tiposEvento = (data||[]).map(fromTipoRow); poblarSelectTipos(); }
-async function refetchEventos(){ const {data} = await sb.from('eventos').select('*').order('fecha'); state.eventos = (data||[]).map(fromEventoRow); }
-async function refetchGastos(){ const {data} = await sb.from('gastos').select('*').order('fecha', {ascending:false}); state.gastos = (data||[]).map(fromGastoRow); }
-async function refetchDirectorio(){ const {data} = await sb.from('directorio').select('*'); state.directorio = data||[]; }
+function avisarError(donde, error){ if(error) console.error('Supabase ('+donde+'):', error.message || error); }
+
+async function refetchEmpleados(){ const {data, error} = await sb.from('empleados').select('*'); avisarError('empleados', error); state.empleados = (data||[]).map(fromEmpleadoRow); poblarSelectsEmpleados(); }
+async function refetchTipos(){ const {data, error} = await sb.from('tipos_evento').select('*'); avisarError('tipos_evento', error); state.tiposEvento = (data||[]).map(fromTipoRow); poblarSelectTipos(); }
+async function refetchEventos(){
+  const {data, error} = esGerente()
+    ? await sb.from('eventos').select('*').order('fecha')
+    : await sb.rpc('eventos_para_mi');
+  avisarError('eventos', error);
+  state.eventos = (data||[]).map(fromEventoRow).sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)));
+}
+async function refetchGastos(){ const {data, error} = await sb.from('gastos').select('*').order('fecha', {ascending:false}); avisarError('gastos', error); state.gastos = (data||[]).map(fromGastoRow); }
+async function refetchDirectorio(){ const {data, error} = await sb.from('directorio').select('*'); avisarError('directorio', error); state.directorio = data||[]; }
 async function refetchConfig(){
-  const {data} = await sb.from('config').select('*').eq('id','general').maybeSingle();
+  const {data, error} = await sb.from('config').select('*').eq('id','general').maybeSingle();
+  avisarError('config', error);
   if(data) state.config = {valorHoraExtra:data.valor_hora_extra||8000, bonoEncargado:data.bono_encargado||15000, bonoFestivo:data.bono_festivo||20000};
 }
 async function cargarTodoSupabase(){
-  await Promise.all([refetchEmpleados(), refetchTipos(), refetchEventos(), refetchGastos(), refetchDirectorio(), refetchConfig()]);
-  renderActiveTab();
+  if(!state.miId) return;
+  if(esGerente()){
+    await Promise.all([refetchEmpleados(), refetchTipos(), refetchEventos(), refetchGastos(), refetchDirectorio(), refetchConfig()]);
+  }else{
+    state.gastos = []; state.directorio = [];
+    await Promise.all([refetchEmpleados(), refetchTipos(), refetchEventos(), refetchConfig()]);
+  }
+  if(!document.getElementById('app-shell').hidden){ aplicarRol(); renderActiveTab(); }
 }

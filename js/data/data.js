@@ -24,6 +24,13 @@ const Data = {
       const ev = state.eventos.find(e=>e.id===id); Object.assign(ev, patch); renderActiveTab();
     }
   },
+  /* El empleado no edita el evento: solo su propia llegada, salida, comprobante y momentos. */
+  async actualizarMiJornada(eventoId, patch){
+    const {error} = await sb.rpc('actualizar_mi_jornada', { p_evento: String(eventoId), p_patch: patch });
+    if(error){ toast('❌ '+error.message); throw error; }
+    await refetchEventos();
+    renderActiveTab();
+  },
   async addEmpleado(obj){
     if(sb){
       const {error} = await sb.from('empleados').insert(toEmpleadoRow(obj));

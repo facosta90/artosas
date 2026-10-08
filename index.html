@@ -10,7 +10,40 @@
 </head>
 <body>
 
-<div class="shell">
+<!-- ================= INICIO DE SESIÓN (lo primero que se ve) ================= -->
+<div id="login-screen">
+  <div class="login-brand"><span class="disp">Arto Operaciones</span></div>
+  <div class="card id-card">
+    <div class="disp" id="mj-auth-title">Iniciar sesión</div>
+    <p id="mj-auth-sub">Ingresa tu cédula y tu contraseña para entrar al aplicativo.</p>
+
+    <div id="mj-login-form">
+      <div class="field"><label>Cédula</label><input type="text" id="mj-login-cedula" inputmode="numeric" placeholder="Ej. 1030112233"></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="mj-login-pass" onkeydown="if(event.key==='Enter') iniciarSesion()"></div>
+      <button class="btn primary" style="width:100%; justify-content:center;" onclick="iniciarSesion()">Ingresar</button>
+      <p class="mj-switch">¿Primera vez aquí? <a href="#" onclick="mostrarRegistro(event)">Regístrate</a></p>
+    </div>
+
+    <div id="mj-registro-form" hidden>
+      <div class="field"><label>Nombre completo</label><input type="text" id="mj-reg-nombre"></div>
+      <div class="field"><label>Cédula</label><input type="text" id="mj-reg-cedula" inputmode="numeric" placeholder="Tu número de documento"></div>
+      <div class="field"><label>Teléfono (WhatsApp)</label><input type="text" id="mj-reg-telefono" placeholder="3001234567"></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="mj-reg-pass"></div>
+      <div class="field"><label>Confirmar contraseña</label><input type="password" id="mj-reg-pass2" onkeydown="if(event.key==='Enter') registrarme()"></div>
+      <button class="btn primary" style="width:100%; justify-content:center;" onclick="registrarme()">Crear mi cuenta</button>
+      <p class="mj-switch">¿Ya tienes cuenta? <a href="#" onclick="mostrarLogin(event)">Inicia sesión</a></p>
+    </div>
+
+    <p class="mj-auth-note">Tu cuenta y tu contraseña quedan protegidas por el sistema de autenticación de Supabase (la oficina no puede ver tu contraseña). Aun así, evita reutilizar una contraseña que ya uses en otra cuenta importante.</p>
+  </div>
+  <div class="card id-card demo-box" id="login-demo" hidden>
+    <p style="margin:0 0 .8rem;">Modo de demostración (sin conexión a la base de datos): los datos son de ejemplo.</p>
+    <button class="btn" style="width:100%; justify-content:center;" onclick="entrarDemoGerente()">Entrar como gerente (demo)</button>
+  </div>
+  <p class="login-estado" id="login-estado">Conectando…</p>
+</div>
+
+<div class="shell" id="app-shell" hidden>
   <header class="appbar">
     <div class="appbar-top">
       <div class="brand">
@@ -20,20 +53,22 @@
       <div style="display:flex; align-items:center; gap:1.4rem;">
         <div class="stat-mini-row">
           <div class="stat-mini"><b id="mini-mes">0</b>eventos este mes</div>
-          <div class="stat-mini"><b id="mini-pend">0</b>pagos pendientes</div>
-          <div class="stat-mini"><b id="mini-gastos">0</b>gastos por reembolsar</div>
+          <div class="stat-mini" data-rol="gerente"><b id="mini-pend">0</b>pagos pendientes</div>
+          <div class="stat-mini" data-rol="gerente"><b id="mini-gastos">0</b>gastos por reembolsar</div>
         </div>
-        <button class="gear-btn" id="btn-settings" onclick="toggleSettings()">⚙ Ajustes</button>
+        <button class="gear-btn" id="btn-settings" data-rol="gerente" onclick="toggleSettings()">⚙ Ajustes</button>
+        <div class="sesion-box"><span id="sesion-nombre"></span><span class="tag" id="sesion-rol"></span>
+          <button class="gear-btn" onclick="cerrarSesion()">Cerrar sesión</button></div>
       </div>
     </div>
     <nav class="tabs">
       <button class="tab-btn" data-tab="mijornada" onclick="switchTab('mijornada')">👤 Mi Jornada</button>
       <button class="tab-btn active" data-tab="calendario" onclick="switchTab('calendario')">📅 Calendario</button>
       <button class="tab-btn" data-tab="eventos" onclick="switchTab('eventos')">🗂 Eventos</button>
-      <button class="tab-btn" data-tab="empleados" onclick="switchTab('empleados')">👥 Empleados</button>
-      <button class="tab-btn" data-tab="nomina" onclick="switchTab('nomina')">💵 Nómina</button>
-      <button class="tab-btn" data-tab="gastos" onclick="switchTab('gastos')">🧾 Gastos</button>
-      <button class="tab-btn" data-tab="directorio" onclick="switchTab('directorio')">📇 Directorio</button>
+      <button class="tab-btn" data-rol="gerente" data-tab="empleados" onclick="switchTab('empleados')">👥 Empleados</button>
+      <button class="tab-btn" data-rol="gerente" data-tab="nomina" onclick="switchTab('nomina')">💵 Nómina</button>
+      <button class="tab-btn" data-rol="gerente" data-tab="gastos" onclick="switchTab('gastos')">🧾 Gastos</button>
+      <button class="tab-btn" data-rol="gerente" data-tab="directorio" onclick="switchTab('directorio')">📇 Directorio</button>
     </nav>
   </header>
 
@@ -50,36 +85,16 @@
     <!-- ================= MI JORNADA (autoservicio colaborador) ================= -->
     <section class="panel" id="tab-mijornada" hidden>
 
-      <div id="mj-identificacion">
+      <div id="mj-sin-ficha" hidden>
         <div class="card id-card">
-          <div class="disp" id="mj-auth-title">Iniciar sesión</div>
-          <p id="mj-auth-sub">Ingresa tu cédula y tu contraseña para ver tus eventos.</p>
-
-          <div id="mj-login-form">
-            <div class="field"><label>Cédula</label><input type="text" id="mj-login-cedula" inputmode="numeric" placeholder="Ej. 1030112233"></div>
-            <div class="field"><label>Contraseña</label><input type="password" id="mj-login-pass" onkeydown="if(event.key==='Enter') iniciarSesion()"></div>
-            <button class="btn primary" style="width:100%; justify-content:center;" onclick="iniciarSesion()">Ingresar</button>
-            <p class="mj-switch">¿Primera vez aquí? <a href="#" onclick="mostrarRegistro(event)">Regístrate</a></p>
-          </div>
-
-          <div id="mj-registro-form" hidden>
-            <div class="field"><label>Nombre completo</label><input type="text" id="mj-reg-nombre"></div>
-            <div class="field"><label>Cédula</label><input type="text" id="mj-reg-cedula" inputmode="numeric" placeholder="Tu número de documento"></div>
-            <div class="field"><label>Teléfono (WhatsApp)</label><input type="text" id="mj-reg-telefono" placeholder="3001234567"></div>
-            <div class="field"><label>Contraseña</label><input type="password" id="mj-reg-pass"></div>
-            <div class="field"><label>Confirmar contraseña</label><input type="password" id="mj-reg-pass2" onkeydown="if(event.key==='Enter') registrarme()"></div>
-            <button class="btn primary" style="width:100%; justify-content:center;" onclick="registrarme()">Crear mi cuenta</button>
-            <p class="mj-switch">¿Ya tienes cuenta? <a href="#" onclick="mostrarLogin(event)">Inicia sesión</a></p>
-          </div>
-
-          <p class="mj-auth-note">Tu cuenta y tu contraseña quedan protegidas por el sistema de autenticación de Supabase (la oficina no puede ver tu contraseña). Aun así, evita reutilizar una contraseña que ya uses en otra cuenta importante.</p>
+          <div class="disp">Tu cédula aún no está en la lista de colaboradores</div>
+          <p>Tu cuenta ya existe, pero la oficina todavía no te ha registrado como colaborador. Pídele al gerente que te agregue en la pestaña Empleados con tu número de cédula y vuelve a entrar.</p>
         </div>
       </div>
 
       <div id="mj-panel" hidden>
         <div class="mj-greet">
           <h2 id="mj-hola">Hola</h2>
-          <button class="btn ghost small" onclick="cambiarUsuario()">Cambiar de usuario</button>
         </div>
         <p class="sub">Marca tu hora de llegada y de salida en cada evento — con eso se genera tu nómina, sin que la oficina tenga que digitarlo.</p>
         <div id="mj-eventos"></div>
@@ -108,9 +123,10 @@
 
       <div id="eventos-lista-wrap">
         <h2>Programación de eventos</h2>
-        <p class="sub">Alta, edición y cancelación de eventos. Cancelar cambia el estado — el registro nunca se borra.</p>
+        <p class="sub" data-rol="gerente">Alta, edición y cancelación de eventos. Cancelar cambia el estado — el registro nunca se borra.</p>
+        <p class="sub" data-rol="empleado">Programación del equipo, solo para consulta. Tus registros de llegada y salida se hacen en Mi Jornada.</p>
 
-        <div class="card" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
+        <div class="card" data-rol="gerente" style="padding:1.2rem 1.3rem; margin-bottom:1.6rem;">
           <h3 class="disp" style="font-size:1rem; margin:0 0 .9rem;">+ Nueva programación</h3>
           <form id="form-evento" onsubmit="crearEvento(event)">
             <div class="grid-3">
@@ -276,6 +292,7 @@
 <script src="js/data/data.js"></script>
 <script src="js/modules/calendario.js"></script>
 <script src="js/modules/eventos.js"></script>
+<script src="js/modules/sesion.js"></script>
 <script src="js/modules/auth.js"></script>
 <script src="js/modules/mijornada.js"></script>
 <script src="js/modules/empleados.js"></script>

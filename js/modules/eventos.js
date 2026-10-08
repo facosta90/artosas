@@ -5,6 +5,7 @@
 /* ---------------- eventos: crear ---------------- */
 function crearEvento(ev){
   ev.preventDefault();
+  if(!esGerente()) return;
   const seleccionados = Array.from(document.querySelectorAll('#nv-colabs .nv-colab-chk:checked')).map(chk=>chk.value);
   if(seleccionados.length===0){ toast('Selecciona al menos un colaborador.'); return; }
   const encargadoStar = document.querySelector('#nv-colabs .star[data-selected="1"]');
@@ -125,6 +126,7 @@ function renderDetalle(){
   const evento = state.eventos.find(e=>e.id===state.selectedEventId);
   if(!evento){ wrap.innerHTML = '<div class="empty-msg card">Este evento ya no existe.</div>'; return; }
   const cls = evento.estado==='Cancelado' ? 'canc' : (evento.estado==='Realizado' ? 'ok' : 'pend');
+  if(!esGerente()){ wrap.innerHTML = detalleSoloLectura(evento, cls); return; }
 
   let html = '<button class="btn ghost detail-back" onclick="volverALista()">← Volver a la lista</button>';
 
@@ -178,7 +180,38 @@ function renderDetalle(){
   wrap.innerHTML = html;
 }
 
+/* Vista del empleado: consulta. Ve quiénes van al evento y, si está asignado, solo su propio pago. */
+function detalleSoloLectura(evento, cls){
+  let html = '<button class="btn ghost detail-back" onclick="volverALista()">← Volver a la lista</button>';
+  html += '<div class="card detail-head"><div class="row1"><div>'
+    + '<h3>'+evento.empresa+'</h3>'
+    + '<div class="ev-meta">'+fmtFecha(evento.fecha)+' · '+evento.horaAlistamiento+' → '+evento.horaFin+' · '+evento.tipoEventoNombre+' · '+evento.modalidad+(evento.lugar?(' · '+evento.lugar):'')+(evento.esFestivo?' · <span style="color:var(--pend);">festivo</span>':'')+'</div>'
+    + (evento.observaciones?('<div class="ev-meta" style="margin-top:.3rem;">Obs: '+evento.observaciones+'</div>'):'')
+    + '</div><span class="pill '+cls+'">'+evento.estado+'</span></div>'
+    + '<div class="ev-colabs" style="margin-top:.8rem;">'
+    + ((evento.colaboradores||[]).map(c=>'<span class="chip'+(c.esEncargado?' enc':'')+'">'+(c.esEncargado?'★ ':'')+c.nombre+'</span>').join('') || '<span class="sub">Sin colaboradores asignados.</span>')
+    + '</div></div>';
+  const yo = (evento.colaboradores||[]).find(c=>c.empleadoId===state.miId);
+  if(yo){
+    html += '<div class="card colab-card">'
+      + '<div class="colab-head"><span class="colab-name">Tu participación'+(yo.esEncargado?' <span class="pill ok">encargado</span>':'')+'</span>'
+      + '<span class="pill '+(yo.estadoPago==='Pagado'?'ok':'pend')+'">'+(yo.estadoPago||'Pendiente')+'</span></div>'
+      + '<div class="mj-times"><span>Ingreso: <b>'+(yo.horaLlegadaReal||'—')+'</b></span><span>Salida: <b>'+(yo.horaFinReal||'—')+'</b></span></div>'
+      + '<div class="colab-total"><span>Tu pago estimado</span><b>'+fmtCOP(calcularTotal(evento, yo))+'</b></div>'
+      + '<button class="btn small" style="margin-top:.8rem;" onclick="switchTab(\'mijornada\')">Registrar llegada y salida en Mi Jornada →</button>'
+      + '</div>';
+  }else{
+    html += '<div class="empty-msg card">No estás asignado a este evento.</div>';
+  }
+  return html;
+}
+
 function actualizarColab(eventoId, empleadoId, patch){
+  if(sb && !esGerente()){
+    if(empleadoId !== state.miId) return;
+    Data.actualizarMiJornada(eventoId, patch).catch(()=>{});
+    return;
+  }
   const evento = state.eventos.find(e=>e.id===eventoId);
   const nuevos = evento.colaboradores.map(c=> c.empleadoId===empleadoId ? {...c, ...patch} : c);
   Data.updateEvento(eventoId, {colaboradores: nuevos}).then(()=>{ if(usandoLocal) renderActiveTab(); });
@@ -199,14 +232,17 @@ function agregarMomento(eventoId, empleadoId){
   state.momentoDraft[key] = '';
 }
 function togglePago(eventoId, empleadoId){
+  if(!esGerente()) return;
   const evento = state.eventos.find(e=>e.id===eventoId);
   const colab = evento.colaboradores.find(c=>c.empleadoId===empleadoId);
   actualizarColab(eventoId, empleadoId, {estadoPago: colab.estadoPago==='Pagado' ? 'Pendiente' : 'Pagado'});
 }
 function marcarRealizado(eventoId){
+  if(!esGerente()) return;
   Data.updateEvento(eventoId, {estado:'Realizado'}).then(()=>{ toast('Evento marcado como realizado.'); if(usandoLocal) renderDetalle(); });
 }
 function cancelarEvento(eventoId){
+  if(!esGerente()) return;
   if(!confirm('¿Cancelar este evento? Quedará marcado como "Cancelado" y se conserva en el historial — no se borra.')) return;
   const evento = state.eventos.find(e=>e.id===eventoId);
   const cambios = [...(evento.cambios||[]), {fecha:new Date().toISOString(), resumen:'Evento cancelado.'}];

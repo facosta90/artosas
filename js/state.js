@@ -11,5 +11,7 @@ const state = {
   filtroFecha: null,
   editando: {}, // eventoId -> bool (modo edición de datos generales)
   momentoDraft: {}, // key "eventoId|empleadoId" -> texto
-  miId: safeGetLocal('arto_mi_id'),
+  miId: null,      // cédula de quien inició sesión
+  miNombre: '',
+  rol: null,       // 'gerente' | 'empleado' (lo define Supabase; ver js/modules/sesion.js)
 };

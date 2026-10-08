@@ -74,20 +74,16 @@ function mjTarjetaEvento(evento, colab){
 }
 
 function renderMiJornada(){
-  const identBox = document.getElementById('mj-identificacion');
+  const sinFicha = document.getElementById('mj-sin-ficha');
   const panel = document.getElementById('mj-panel');
-  if(!state.miId){
-    identBox.hidden = false;
+  const emp = state.empleados.find(e=>e.id===state.miId);
+  if(!emp){
+    // hay sesión, pero la cédula no está en la lista de colaboradores
+    sinFicha.hidden = false;
     panel.hidden = true;
     return;
   }
-  const emp = state.empleados.find(e=>e.id===state.miId);
-  if(!emp){
-    // el id guardado ya no existe (p.ej. datos de ejemplo distintos) — pedir de nuevo
-    cambiarUsuario();
-    return;
-  }
-  identBox.hidden = true;
+  sinFicha.hidden = true;
   panel.hidden = false;
   document.getElementById('mj-hola').textContent = 'Hola, ' + emp.nombre;
 

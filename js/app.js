@@ -13,51 +13,45 @@ async function init(){
 
   if(sb){
     usandoLocal = false;
-    document.getElementById('modo-datos').textContent = 'Conectando…';
-    sb.auth.onAuthStateChange((_event, session)=>{
-      if(session && session.user){
-        state.miId = (session.user.user_metadata && session.user.user_metadata.cedula) || (session.user.email||'').split('@')[0];
-      }else{
-        state.miId = null;
-      }
-      if(dataReadyDone) renderMiJornada();
-    });
-    try{
-      await cargarTodoSupabase();
-      document.getElementById('modo-datos').textContent = 'Datos en vivo — compartidos para todo el equipo';
-    }catch(e){
-      document.getElementById('modo-datos').textContent = 'No se pudo conectar a Supabase — revisa la consola del navegador.';
-    }
-    onDataReady();
-    setInterval(()=>{ cargarTodoSupabase().catch(()=>{}); }, 25000); // refresco liviano para ver los cambios de otros
+    document.getElementById('login-estado').textContent = 'Conectado a la base de datos';
+    // Si la sesión se cierra (aquí o en otra pestaña), se vuelve al inicio de sesión.
+    sb.auth.onAuthStateChange((event)=>{ if(event==='SIGNED_OUT' && state.miId) limpiarSesionLocal(); });
+    let session = null;
+    try{ session = (await sb.auth.getSession()).data.session; }catch(e){ session = null; }
+    if(session && session.user){ await entrarAlAplicativo(session.user); }
+    else{ mostrarPantallaLogin(); }
   }else{
     usandoLocal = true;
-    document.getElementById('modo-datos').textContent = 'Vista de demostración local — configura Supabase en index.html para compartir datos de verdad (ver GUIA_DESPLIEGUE.md)';
+    document.getElementById('login-estado').textContent = 'Modo de demostración local';
+    document.getElementById('modo-datos').textContent = 'Vista de demostración local — configura Supabase en js/config.js para compartir datos de verdad';
     state.tiposEvento = SEED.tiposEvento.map(x=>({...x}));
     state.empleados = SEED.empleados.map(x=>({...x}));
     state.eventos = SEED.eventos.map(x=>({...x, colaboradores:x.colaboradores.map(c=>({...c, momentosDestacados:[...c.momentosDestacados]}))}));
     state.gastos = SEED.gastos.map(x=>({...x}));
     state.directorio = SEED.directorio.map(x=>({...x}));
     state.config = {...SEED.config};
-    onDataReady();
+    // recordar la sesión de demostración al recargar
+    const guardado = safeGetLocal('arto_mi_id'), rolGuardado = safeGetLocal('arto_rol');
+    if(guardado && rolGuardado==='gerente'){ entrarDemoGerente(); }
+    else if(guardado && state.empleados.some(e=>e.id===guardado)){ entrarLocalEmpleado(guardado); }
+    else{ mostrarPantallaLogin(); }
   }
 }
 
 let dataReadyDone = false;
 function onDataReady(){
-  if(dataReadyDone) return;
   dataReadyDone = true;
   poblarSelectsEmpleados();
   poblarSelectTipos();
   document.getElementById('ga-fecha').value = todayStr();
   document.getElementById('nv-fecha').value = todayStr();
   previsualizarTarifa();
-  renderAll();
 }
 
 
 /* ---------------- tabs ---------------- */
 function switchTab(tab){
+  if(!puedeVerTab(tab)) tab = 'mijornada';   // un empleado no puede abrir pestañas de gerente
   state.activeTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.panel').forEach(p=>p.hidden = (p.id !== 'tab-'+tab));
@@ -82,6 +76,7 @@ function renderActiveTab(){
 function renderAll(){ renderActiveTab(); }
 
 function toggleSettings(){
+  if(!esGerente()) return;
   const pop = document.getElementById('settings-pop');
   pop.hidden = !pop.hidden;
   if(!pop.hidden){
@@ -91,6 +86,7 @@ function toggleSettings(){
   }
 }
 function guardarConfig(){
+  if(!esGerente()) return;
   const obj = {
     valorHoraExtra: Number(document.getElementById('cfg-horaExtra').value)||0,
     bonoEncargado: Number(document.getElementById('cfg-bonoEncargado').value)||0,
